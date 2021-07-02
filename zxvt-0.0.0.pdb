@@ -1,0 +1,273 @@
+% Not quite Capture of the Territory
+% 1 player
+% Board 3×3
+% No buildings
+% Pawns can't be spawned
+% Goal is too capture the whole board
+% Dice aren't used each move capture a cel
+
+% WARNING: Remove to get valid program in GDL-II (HRF)
+:- op(1000, xfy, '&').
+:- op(900, fy, '~').
+:- initialization(all_tests_are_passing).
+
+% Configuration
+player(red).
+max_row(3).
+max_col(3).
+max_stack(1).
+
+% GDL
+role(random).
+role(red).
+
+input(P, noop) :-
+    role(P).
+input(P, move(NumberOfPawns, from(From), to(To))) :-
+    player(P) &
+    stack(NumberOfPawns) &
+    neighboring_coordinates(From, To).
+input(random, roll(L)) :-
+    stack(M) &
+    roll_d6(M, L).
+
+base(Cell) :- valid_cell(Cell).
+base(control(R)) :- role(R).
+
+init(cell(rc(1,1), captured_by(red), with_pawn(of(red), number(1)))).
+init(cell(rc(1,2), wild, free)).
+init(cell(rc(1,3), wild, free)).
+init(cell(rc(2,1), wild, free)).
+init(cell(rc(2,2), wild, free)).
+init(cell(rc(2,3), wild, free)).
+init(cell(rc(3,1), wild, free)).
+init(cell(rc(3,2), wild, free)).
+init(cell(rc(3,3), wild, free)).
+init(control(red)).
+
+legal(random, roll(L)) :-
+    stack(M) &
+    roll_d6(M, L) &
+    true(control(random)).
+legal(random, noop) :-
+    player(Player) &
+    true(control(Player)).
+legal(Player, noop) :-
+    player(Player) &
+    true(control(random)).
+legal(Player, move(MovingPawns, from(From), to(To))) :-
+    player(Player) &
+    neighboring_coordinates(From, To) &
+    stack(MovingPawns) &
+    le(MovingPawns, StationaryPawns) &
+    true(control(Player)) &
+    true(cell(From, captured_by(Player), with_pawn(of(Player), number(StationaryPawns)))).
+
+goal(random, 0).
+goal(Player, Score) :-
+    player(Player) &
+    player_score(Player, Score).
+
+% Games ends if all board is captured
+terminal :-
+    player(Player) &
+    true_for_each_cell(captured_by(Player)).
+
+%% Game ends when no pawns are left
+%terminal :-
+%    ~true(cell(_, _, with_pawn(_, _))).
+
+% If a player does nothing then each cell retains its state
+next(Cell) :-
+    player(Player) &
+    does(random, _) &
+    does(Player, noop) &
+    true(Cell).
+
+% Destination is immidiately captured by player and all pawns appear there
+next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
+    player(Player) &
+    does(random, _) &
+    does(Player, move(MovingPawns, from(_), to(To))) &
+    true(cell(To, _, _)).
+
+% Origin retains its capture state and ALL pawns are removed
+next(cell(From, OldCapture, free)) :-
+    player(Player) &
+    does(random, _) &
+    does(Player, move(_, from(From), to(_))) &
+    true(cell(From, OldCapture, _)).
+
+% All other cells should retains their respective state
+next(cell(Rc, OldCapture, OldPawnState)) :-
+    player(Player) &
+    does(random, _) &
+    does(Player, move(_, from(From), to(To))) &
+    true(cell(Rc, OldCapture, OldPawnState)) &
+    distinct(Rc, From) &
+    distinct(Rc, To).
+
+% There is no transfer of control
+next(control(Player)) :-
+    player(Player) &
+    true(control(Player)).
+
+% Input utils
+player_score(Player, 100) :-
+    true_for_each_cell(captured_by(Player)).
+player_score(Player, 50) :-
+    true(cell(_, wild, _)) &
+    true(cell(_, captured_by(Player), _)).
+player_score(Player, 0) :-
+    player(Player) &% Fixes unsafe rule warning
+    true_for_each_cell(wild).
+
+%% TODO: Implement it in GDL
+%alt_player_score(Player, NumberOfCapturedCells) :-
+%    player(Player) &
+%    findall(I, (I=cell(_, captured_by(Player), _), true(I)), L) &
+%    length(L, NumberOfCapturedCells).
+
+true_for_each_cell(Capture) :-
+    true(cell(rc(1,1), Capture, _)) &
+    true(cell(rc(1,2), Capture, _)) &
+    true(cell(rc(1,3), Capture, _)) &
+    true(cell(rc(2,1), Capture, _)) &
+    true(cell(rc(2,2), Capture, _)) &
+    true(cell(rc(2,3), Capture, _)) &
+    true(cell(rc(3,1), Capture, _)) &
+    true(cell(rc(3,2), Capture, _)) &
+    true(cell(rc(3,3), Capture, _)).
+
+% Utils with complete definitions
+row(I) :-
+    max_row(MaxRow) &
+    le(1, I) & le(I, MaxRow).
+
+col(I) :-
+    max_col(MaxCol) &
+    le(1, I) & le(I, MaxCol).
+
+stack(PossiblePawnStack) :-
+    max_stack(MaxStack) &
+    le(1, PossiblePawnStack) & le(PossiblePawnStack, MaxStack).
+
+neighboring_coordinates(A, B) :-
+    coordinates(A) &
+    coordinates(B) &
+    neighboring_coordinates_aux(A, B).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Lc, Rc).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Rc, Lc).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- s(C,_) & s(Lr, Rr).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- s(C,_) & s(Rr, Lr).
+
+roll_d6(0, []).
+roll_d6(1, [R1]) :- d6(R1).
+roll_d6(2, [R1,R2]) :- d6(R1) & d6(R2).
+roll_d6(3, [R1,R2,R3]) :- d6(R1) & d6(R2) & d6(R3).
+roll_d6(4, [R1,R2,R3,R4]) :- d6(R1) & d6(R2) & d6(R3) & d6(R4).
+
+% Unstratified Recursion: roll(N,H!T) :- d6(H) & s(Prev,N) & roll(Prev,T)
+%roll(N, H!T) :-
+%roll(N, [H|T]) :-
+%    d6(H) &
+%    s(Prev, N) &
+%    roll(Prev, T).
+
+valid_cell(cell(Coordinates, Type, WithPawn)) :-
+    coordinates(Coordinates) &
+    cell_type(Type) &
+    valid_pawn(WithPawn).
+
+coordinates(rc(Row, Column)) :- row(Row) & col(Column).
+
+cell_type(wild).
+cell_type(captured_by(Player)) :-
+    player(Player).
+valid_pawn(free).
+valid_pawn(with_pawn(of(Player), number(Number))) :-
+    player(Player) &
+    stack(Number).
+
+% All possible values that a D6 can produce
+d6(V) :-
+    le(1, V) & le(V, 6).
+
+% A is less then or equal to B
+le(A, B) :- s(B, _) & s(A, X) & le(X, B).
+le(A, A) :- s(A, _).
+
+% Successor
+s( 0, 1). s( 1, 2). s( 2, 3). s( 3, 4). s( 4, 5). s( 5, 6). s( 6, 7). s( 7, 8). % s( 8, 9). s( 9,10).
+%s(10,11). s(11,12). s(12,13). s(13,14). s(14,15). s(15,16). s(16,17). s(17,18). s(18,19). s(19,20).
+%s(20,21). s(21,22). s(22,23). s(23,24). s(24,25). s(25,26). s(26,27). s(27,28). s(28,29). s(29,30).
+%s(30,31). s(31,32). s(32,33). s(33,34). s(34,35). s(35,36). s(36,37). s(37,38). s(38,39). s(39,40).
+%s(40,41). s(41,42). s(42,43). s(43,44). s(44,45). s(45,46). s(46,47). s(47,48). s(48,49). s(49,50).
+%s(50,51). s(51,52). s(52,53). s(53,54). s(54,55). s(55,56). s(56,57). s(57,58). s(58,59). s(59,60).
+%s(60,61). s(61,62). s(62,63). s(63,64). s(64,65). s(65,66). s(66,67). s(67,68). s(68,69). s(69,70).
+%s(70,71). s(71,72). s(72,73). s(73,74). s(74,75). s(75,76). s(76,77). s(77,78). s(78,79). s(79,80).
+%s(80,81). s(81,82). s(82,83). s(83,84). s(84,85). s(85,86). s(86,87). s(87,88). s(88,89). s(89,90).
+%s(90,91). s(91,92). s(92,93). s(93,94). s(94,95). s(95,96). s(96,97). s(97,98). s(98,99). s(99,100).
+
+% Tests
+% TODO: Perform tests for all possible board configurations
+all_statements_about_current_configuration_are_valid :-
+    ~invalid_statement_for_current_configuration_exists(_).
+invalid_statement_for_current_configuration_exists(I) :-
+    true(I) &
+    ~base(I).
+
+all_legal_moves_for_current_configuration_are_valid :-
+    ~invalid_but_legal_move_for_current_configuration_exists(_, _).
+invalid_but_legal_move_for_current_configuration_exists(Role, Move) :-
+    legal(Role, Move) &
+    ~input(Role, Move).
+
+all_roles_have_a_score_for_current_configuration :-
+    ~there_is_a_role_without_a_score_for_current_configuration(_).
+there_is_a_role_without_a_score_for_current_configuration(Role) :-
+    role(Role) &
+    ~goal(Role, _).
+
+all_scores_are_unambiguous_for_current_configuration :-
+    ~there_is_a_role_with_ambiguous_score(_).
+there_is_a_role_with_ambiguous_score(Role) :-
+    role(Role) & ~role_scores_are_unambiguous(Role).
+role_scores_are_unambiguous(Role) :-
+    findall(Score, (goal(Role, Score)), AllScores) &
+    list_of_identical_values(AllScores).
+
+user_cannot_move_0_pawns :-
+    ~pawn_0.
+pawn_0 :-
+    stack(NumberOfAllowedPawns) &
+    ~le(0, NumberOfAllowedPawns).
+
+current_state_is_not_terminal :-
+    ~terminal.
+
+all_tests_are_passing :-
+    all_statements_about_current_configuration_are_valid &
+    all_legal_moves_for_current_configuration_are_valid &
+    all_roles_have_a_score_for_current_configuration &
+    all_scores_are_unambiguous_for_current_configuration &
+    current_state_is_not_terminal &
+    user_cannot_move_0_pawns.
+
+list_of_identical_values([]).
+list_of_identical_values([H|T]) :-
+    value_of_all_elements_of_a_list(H, T).
+value_of_all_elements_of_a_list(_, []).
+value_of_all_elements_of_a_list(H, [H|T]) :-
+    value_of_all_elements_of_a_list(H, T).
+
+% Assert that current configuration is initial
+true(X) :- init(X).
+
+'&'(Lhs, Rhs) :-
+    call(Lhs), call(Rhs).
+'~'(Rhs) :-
+    \+ call(Rhs).
+
+% FIXME: It looks like distinct/2 should behave like dif/2
+distinct(A, B) :- A \= B.
