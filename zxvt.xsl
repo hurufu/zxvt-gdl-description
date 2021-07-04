@@ -29,15 +29,18 @@
       </head>
       <body>
         <xsl:apply-templates select="state"/>
-        <div>
-          <xsl:text>Control: </xsl:text>
-          <samp>
-            <xsl:attribute name="class">
-              <xsl:value-of select="state/fact[relation = 'control']/argument"/>
-            </xsl:attribute>
+        <xsl:text>Control: </xsl:text>
+        <samp>
+          <xsl:attribute name="class">
             <xsl:value-of select="state/fact[relation = 'control']/argument"/>
-          </samp>
-        </div>
+          </xsl:attribute>
+          <xsl:value-of select="state/fact[relation = 'control']/argument"/>
+        </samp>
+        <xsl:if test="state/fact[relation = 'last_roll']">
+          <xsl:text>, last roll: </xsl:text>
+          <xsl:value-of select="state/fact[relation = 'last_roll']/argument[1]"/>
+          (<xsl:value-of select="state/fact[relation = 'last_roll']/argument[2]"/>)
+        </xsl:if>
       </body>
     </html>
   </xsl:template>

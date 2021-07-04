@@ -34,6 +34,9 @@ input(random, roll(L)) :-
 
 base(Cell) :- valid_cell(Cell).
 base(control(R)) :- role(R).
+base(last_roll(D6, Outcome)) :-
+    d6(D6) &
+    outcome(Outcome).
 
 init(cell(rc(1,1), captured_by(red), free)).
 init(cell(rc(1,2), wild, with_pawn(of(red), number(1)))).
@@ -120,6 +123,14 @@ next(cell(Rc, OldCapture, OldPawnState)) :-
 next(control(Player)) :-
     player(Player) &
     true(control(Player)).
+
+next(last_roll(D6, Outcome)) :-
+    player(Player) &
+    does(random, roll([D6])) &
+    does(Player, move(_, from(_), to(To))) &
+    true(cell(To, Capture, _)) &
+    rule_book(Capture, L) &
+    nth_element_d6(D6, L, Outcome).
 
 % Input utils
 player_score(Player, 100) :-
