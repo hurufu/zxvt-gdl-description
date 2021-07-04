@@ -38,8 +38,8 @@ base(last_roll(D6, Outcome)) :-
     d6(D6) &
     outcome(Outcome).
 
-init(cell(rc(1,1), captured_by(red), free)).
-init(cell(rc(1,2), wild, with_pawn(of(red), number(1)))).
+init(cell(rc(1,1), captured_by(red), with_pawn(of(red), number(1)))).
+init(cell(rc(1,2), wild, free)).
 init(cell(rc(1,3), wild, free)).
 init(cell(rc(2,1), wild, free)).
 init(cell(rc(2,2), wild, free)).
