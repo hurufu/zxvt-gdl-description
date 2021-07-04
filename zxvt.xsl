@@ -20,12 +20,24 @@
           td.red {
             background-color: #CC0000;
           }
+          samp.red {
+            color: #CC0000;
+          }
           table.board {
             background-color: #000000;
           }</style>
       </head>
       <body>
         <xsl:apply-templates select="state"/>
+        <div>
+          <xsl:text>Control: </xsl:text>
+          <samp>
+            <xsl:attribute name="class">
+              <xsl:value-of select="state/fact[relation = 'control']/argument"/>
+            </xsl:attribute>
+            <xsl:value-of select="state/fact[relation = 'control']/argument"/>
+          </samp>
+        </div>
       </body>
     </html>
   </xsl:template>
