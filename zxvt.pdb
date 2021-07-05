@@ -21,8 +21,6 @@ rule_book(captured_by(red), [nothing, nothing, nothing, nothing, nothing, nothin
 role(random).
 role(red).
 
-input(P, noop) :-
-    player(P).
 input(P, move(NumberOfPawns, from(From), to(To))) :-
     player(P) &
     stack(NumberOfPawns) &
@@ -54,9 +52,6 @@ legal(random, roll(L)) :-
     roll_d6(M, L) &
     player(Player) &
     true(control(Player)).
-legal(Player, noop) :-
-    player(Player) &
-    true(control(random)).
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     player(Player) &
     neighboring_coordinates(From, To) &
@@ -89,13 +84,6 @@ terminal :-
 %% Game ends when no pawns are left
 %terminal :-
 %    ~true(cell(_, _, with_pawn(_, _))).
-
-% If a player does nothing then each cell retains its state
-next(Cell) :-
-    player(Player) &
-    does(random, _) &
-    does(Player, noop) &
-    true(Cell).
 
 next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
     does(random, roll([D])) &
