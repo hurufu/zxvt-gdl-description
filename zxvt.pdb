@@ -3,7 +3,7 @@
 % Board 3×3
 % No buildings
 % Pawns can't be stacked and only single pawn can be placed on the board
-% Goal is too capture the whole board
+% Goal is to capture the whole board
 
 % WARNING: Remove to get valid program in GDL-II (HRF)
 :- op(1000, xfy, '&').
@@ -14,67 +14,61 @@
 max_row(3).
 max_col(3).
 max_stack(1).
-rule_book(wild,             [minusone, nothing, nothing, capture, capture, capture]).
-rule_book(captured_by(red), [nothing, nothing, nothing, nothing, nothing, nothing]).
+start_position(red, rc(1,1)).
+rich_ui(no_rich_ui).%Avoid exception if all UI enrichments are disabled
+rich_ui(last_roll).
+rules(Player, captured_by(Player), [nothing,  nothing, nothing, nothing, nothing, nothing]) :- player(Player).
+rules(Player, wild,                [minusone, nothing, nothing, capture, capture, capture]) :- player(Player).
 
 % GDL
 role(random).
 role(red).
 
-input(P, move(NumberOfPawns, from(From), to(To))) :-
-    player(P) &
+% Number of rolled dice shouldn't exceed allowed pawn stack size
+input(random, roll(L)) :-
+    roll_d6(M, L) &
+    stack(M).
+input(Player, move(NumberOfPawns, from(From), to(To))) :-
+    player(Player) &
     stack(NumberOfPawns) &
     neighboring_coordinates(From, To).
-input(random, roll(L)) :-
-    stack(M) &
-    roll_d6(M, L).
-input(red, spawn(at(rc(1,1)))).
+% New pawn can be spawned only at player's starting position
+input(Player, spawn(at(StartPosition))) :-
+    start_position(Player, StartPosition).
 
 base(Cell) :- valid_cell(Cell).
-base(control(R)) :- role(R).
-% This rule is only needed to enrich UI, it can be removed to increase performance
+base(control(R)) :- player(R).
 base(last_roll(D6, Outcome)) :-
+    rich_ui(last_roll) &
     d6(D6) &
     outcome(Outcome).
 
-init(cell(rc(1,1), captured_by(red), with_pawn(of(red), number(1)))).
-init(cell(rc(1,2), wild, free)).
-init(cell(rc(1,3), wild, free)).
-init(cell(rc(2,1), wild, free)).
-init(cell(rc(2,2), wild, free)).
-init(cell(rc(2,3), wild, free)).
-init(cell(rc(3,1), wild, free)).
-init(cell(rc(3,2), wild, free)).
-init(cell(rc(3,3), wild, free)).
+init(cell(StartPosition, captured_by(Player), with_pawn(of(Player), number(1)))) :-
+    start_position(Player, StartPosition).
+init(cell(Rc, wild, free)) :-
+    valid_cell(cell(Rc, wild, free)) &
+    start_position(_, StartPosition) &
+    distinct(StartPosition, Rc).
 init(control(red)).
 
-legal(random, roll(L)) :-
-    stack(M) &
-    roll_d6(M, L) &
+% TODO: Number of dice thrown should be equal to the largest player's pawn stack
+legal(random, roll([D6])) :-
+    true(control(Player)) &
     player(Player) &
-    true(control(Player)).
+    d6(D6).
 legal(Player, move(MovingPawns, from(From), to(To))) :-
+    true(control(Player)) &
+    true(cell(From, _, with_pawn(of(Player), number(StationaryPawns)))) &
     player(Player) &
     neighboring_coordinates(From, To) &
     stack(MovingPawns) &
-    le(MovingPawns, StationaryPawns) &
-    true(control(Player)) &
-    true(cell(From, _, with_pawn(of(Player), number(StationaryPawns)))).
+    le(MovingPawns, StationaryPawns).
 legal(Player, spawn(at(rc(1,1)))) :-
     true(control(Player)) &
-    true(cell(rc(1,1), _, free)) &
-    true(cell(rc(1,2), _, free)) &
-    true(cell(rc(1,3), _, free)) &
-    true(cell(rc(2,1), _, free)) &
-    true(cell(rc(2,2), _, free)) &
-    true(cell(rc(2,3), _, free)) &
-    true(cell(rc(3,1), _, free)) &
-    true(cell(rc(3,2), _, free)) &
-    true(cell(rc(3,3), _, free)).
+    true_for_each_cell_occupation(free).
 
 goal(random, 0).
 goal(Player, Score) :-
-    player(Player) &
     player_score(Player, Score).
 
 % Games ends if all board is captured
@@ -86,22 +80,19 @@ next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPaw
     does(random, roll([D])) &
     does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
     true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_book(OldCapture, L) &
-    nth_element_d6(D, L, capture).
+    rule_outcome(Player, D, OldCapture, capture).
 
 next(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) :-
     does(random, roll([D])) &
     does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
     true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_book(OldCapture, L) &
-    nth_element_d6(D, L, nothing).
+    rule_outcome(Player, D, OldCapture, nothing).
 
 next(cell(FromAndTo, OldCapture, free)) :-
     does(random, roll([D])) &
     does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
     true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_book(OldCapture, L) &
-    nth_element_d6(D, L, minusone).
+    rule_outcome(Player, D, OldCapture, minusone).
 
 % Destination is captured by player according to rule book and all pawns appear there
 next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
@@ -110,8 +101,7 @@ next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) 
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, Capture, _)) &
-    rule_book(Capture, L) &
-    nth_element_d6(D, L, capture).
+    rule_outcome(Player, D, Capture, capture).
 
 next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
     player(Player) &
@@ -119,8 +109,7 @@ next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, Capture, _)) &
-    rule_book(Capture, L) &
-    nth_element_d6(D, L, nothing).
+    rule_outcome(Player, D, Capture, nothing).
 
 % Origin retains its capture state and ALL pawns are removed
 next(cell(From, OldCapture, free)) :-
@@ -145,8 +134,7 @@ next(cell(To, Capture, free)) :-
     does(Player, move(_, from(From), to(To))) &
     true(cell(To, Capture, _)) &
     distinct(From, To) &
-    rule_book(Capture, L) &
-    nth_element_d6(D, L, minusone).
+    rule_outcome(Player, D, Capture, minusone).
 
 % All other cells should retains their respective state
 next(cell(Rc, OldCapture, OldPawnState)) :-
@@ -163,14 +151,13 @@ next(control(Player)) :-
     player(Player) &
     true(control(Player)).
 
-% This rule is only needed to enrich UI, it can be removed to increase performance
 next(last_roll(D6, Outcome)) :-
+    rich_ui(last_roll) &
     player(Player) &
     does(random, roll([D6])) &
     does(Player, move(_, from(_), to(To))) &
     true(cell(To, Capture, _)) &
-    rule_book(Capture, L) &
-    nth_element_d6(D6, L, Outcome).
+    rule_outcome(Player, D6, Capture, Outcome).
 
 % Input utils
 player_score(Player, 100) :-
@@ -198,6 +185,17 @@ true_for_each_cell(Capture) :-
     true(cell(rc(3,1), Capture, _)) &
     true(cell(rc(3,2), Capture, _)) &
     true(cell(rc(3,3), Capture, _)).
+
+true_for_each_cell_occupation(Occupation) :-
+    true(cell(rc(1,1), _, Occupation)) &
+    true(cell(rc(1,2), _, Occupation)) &
+    true(cell(rc(1,3), _, Occupation)) &
+    true(cell(rc(2,1), _, Occupation)) &
+    true(cell(rc(2,2), _, Occupation)) &
+    true(cell(rc(2,3), _, Occupation)) &
+    true(cell(rc(3,1), _, Occupation)) &
+    true(cell(rc(3,2), _, Occupation)) &
+    true(cell(rc(3,3), _, Occupation)).
 
 % Utils with complete definitions
 row(I) :-
@@ -239,14 +237,13 @@ outcome(capture).
 outcome(nothing).
 outcome(minusone).
 
-player(Player) :- role(Player) & distinct(random, Player).
+rule_outcome(Player, D6, CaptureType, Outcome) :-
+    rules(Player, CaptureType, OutcomeList) &
+    nth_element_d6(D6, OutcomeList, Outcome).
 
-% Unstratified Recursion: roll(N,H!T) :- d6(H) & s(Prev,N) & roll(Prev,T)
-%roll(N, H!T) :-
-%roll(N, [H|T]) :-
-%    d6(H) &
-%    s(Prev, N) &
-%    roll(Prev, T).
+player(Player) :-
+    role(Player) &
+    distinct(random, Player).
 
 valid_cell(cell(Coordinates, Type, WithPawn)) :-
     coordinates(Coordinates) &
