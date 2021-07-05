@@ -10,7 +10,6 @@
 :- initialization(all_tests_are_passing).
 
 % Configuration
-player(red).
 max_row(3).
 max_col(3).
 max_stack(1).
@@ -252,6 +251,8 @@ nth_element_d6(6, [R1,R2,R3,R4,R5,R6], R6) :- outcome(R1) & outcome(R2) & outcom
 outcome(capture).
 outcome(nothing).
 outcome(minusone).
+
+player(Player) :- role(Player) & distinct(random, Player).
 
 % Unstratified Recursion: roll(N,H!T) :- d6(H) & s(Prev,N) & roll(Prev,T)
 %roll(N, H!T) :-
