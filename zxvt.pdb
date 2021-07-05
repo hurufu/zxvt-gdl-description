@@ -81,10 +81,6 @@ terminal :-
     player(Player) &
     true_for_each_cell(captured_by(Player)).
 
-%% Game ends when no pawns are left
-%terminal :-
-%    ~true(cell(_, _, with_pawn(_, _))).
-
 next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
     does(random, roll([D])) &
     does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
