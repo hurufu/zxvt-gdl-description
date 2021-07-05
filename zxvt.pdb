@@ -2,7 +2,6 @@
 % 1 player
 % Board 3×3
 % No buildings
-% Pawns can't be spawned
 % Goal is too capture the whole board
 
 % WARNING: Remove to get valid program in GDL-II (HRF)
