@@ -97,11 +97,33 @@ next(Cell) :-
     does(Player, noop) &
     true(Cell).
 
+next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
+    does(random, roll([D])) &
+    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
+    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
+    rule_book(OldCapture, L) &
+    nth_element_d6(D, L, capture).
+
+next(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) :-
+    does(random, roll([D])) &
+    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
+    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
+    rule_book(OldCapture, L) &
+    nth_element_d6(D, L, nothing).
+
+next(cell(FromAndTo, OldCapture, free)) :-
+    does(random, roll([D])) &
+    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
+    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
+    rule_book(OldCapture, L) &
+    nth_element_d6(D, L, minusone).
+
 % Destination is captured by player according to rule book and all pawns appear there
 next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
     player(Player) &
     does(random, roll([D])) &
-    does(Player, move(MovingPawns, from(_), to(To))) &
+    does(Player, move(MovingPawns, from(From), to(To))) &
+    distinct(From, To) &
     true(cell(To, Capture, _)) &
     rule_book(Capture, L) &
     nth_element_d6(D, L, capture).
@@ -109,7 +131,8 @@ next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) 
 next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
     player(Player) &
     does(random, roll([D])) &
-    does(Player, move(MovingPawns, from(_), to(To))) &
+    does(Player, move(MovingPawns, from(From), to(To))) &
+    distinct(From, To) &
     true(cell(To, Capture, _)) &
     rule_book(Capture, L) &
     nth_element_d6(D, L, nothing).
@@ -118,7 +141,8 @@ next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
 next(cell(From, OldCapture, free)) :-
     player(Player) &
     does(random, _) &
-    does(Player, move(_, from(From), to(_))) &
+    does(Player, move(_, from(From), to(To))) &
+    distinct(From, To) &
     true(cell(From, OldCapture, _)).
 
 % All other cells should retains their respective state
@@ -133,8 +157,9 @@ next(cell(Rc, OldCapture, OldPawnState)) :-
 next(cell(To, Capture, free)) :-
     player(Player) &
     does(random, roll([D])) &
-    does(Player, move(_, from(_), to(To))) &
+    does(Player, move(_, from(From), to(To))) &
     true(cell(To, Capture, _)) &
+    distinct(From, To) &
     rule_book(Capture, L) &
     nth_element_d6(D, L, minusone).
 
@@ -205,7 +230,7 @@ neighboring_coordinates(A, B) :-
     coordinates(A) &
     coordinates(B) &
     neighboring_coordinates_aux(A, B).
-%neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- s(_,R) & s(_, C).
+neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- s(_,R) & s(_, C).
 neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Lc, Rc).
 neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Rc, Lc).
 neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- s(C,_) & s(Lr, Rr).
