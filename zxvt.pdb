@@ -235,11 +235,11 @@ neighboring_coordinates(A, B) :-
     coordinates(A) &
     coordinates(B) &
     neighboring_coordinates_aux(A, B).
-neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- s(_,R) & s(_, C).
-neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Lc, Rc).
-neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- s(R,_) & s(Rc, Lc).
-neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- s(C,_) & s(Lr, Rr).
-neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- s(C,_) & s(Rr, Lr).
+neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- is_number(R) & is_number(C).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- is_number(R) & s(Lc, Rc).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- is_number(R) & s(Rc, Lc).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Lr, Rr).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Rr, Lr).
 
 roll_d6(0, []).
 roll_d6(1, [R1]) :- d6(R1).
@@ -318,9 +318,12 @@ valid_pawn(with_pawn(of(Player), number(Number))) :-
 d6(V) :-
     le(1, V) & le(V, 6).
 
+is_number(N) :-
+    s(N, _).
+
 % A is less then or equal to B
-le(A, B) :- s(B, _) & s(A, X) & le(X, B).
-le(A, A) :- s(A, _).
+le(A, B) :- is_number(B) & s(A, X) & le(X, B).
+le(A, A) :- is_number(A).
 
 % Successor
 s( 0, 1). s( 1, 2). s( 2, 3). s( 3, 4). s( 4, 5). s( 5, 6). s( 6, 7). s( 7, 8). % s( 8, 9). s( 9,10).
