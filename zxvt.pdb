@@ -26,12 +26,17 @@ rules(Player, wild,                [minusone, nothing, nothing, capture, capture
 % TODO: Consider something similar as a future rules
 rules(situation(army(of(P), count(     X )), on(Tile,  owned_by(P))), d6(D), situation(army(of(P), count(     X )), on(Tile,  owned_by(P)))) :- player(P) & tile(Tile) & d6(D) & is_succ(X).
 rules(situation(army(of(P), count(succ(X))), on(field,        wild)), d6(1), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(D), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P), (D = 2 | D = 3) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P), (D = 4 | D = 5) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(2), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(3), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(4), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(5), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & is_succ(X).
 rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(6), situation(army(of(P), count(succ(X))), on(field,        wild))) :- player(P) & is_succ(X).
 rules(situation(army(of(P), count(succ(X))), on(field, owned_by(Q))), d6(1), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & (D = 2 | D = 3 | D = 4) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & (D = 5 | D = 6) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(2), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(3), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(4), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(5), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(6), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(Y)), on(town,  owned_by(Q)))) :- (D = 1; D = 2), Y #= X-1, P \= Q.
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(Q)))) :- (D = 3; D = 4), P \= Q.
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(P)))) :- (D = 5; D = 6), P \= Q.
