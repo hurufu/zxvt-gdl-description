@@ -113,6 +113,14 @@ next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
     true(cell(To, Capture, _)) &
     rule_outcome(Player, D, Capture, nothing).
 
+next(cell(To, Capture, free)) :-
+    player(Player) &
+    does(random, roll([D])) &
+    does(Player, move(_, from(From), to(To))) &
+    true(cell(To, Capture, _)) &
+    distinct(From, To) &
+    rule_outcome(Player, D, Capture, minusone).
+
 % Origin retains its capture state and ALL pawns are removed
 next(cell(From, OldCapture, free)) :-
     player(Player) &
@@ -129,14 +137,6 @@ next(cell(Rc, OldCapture, OldPawnState)) :-
     true(cell(Rc, OldCapture, OldPawnState)) &
     distinct(Rc, From) &
     distinct(Rc, To).
-
-next(cell(To, Capture, free)) :-
-    player(Player) &
-    does(random, roll([D])) &
-    does(Player, move(_, from(From), to(To))) &
-    true(cell(To, Capture, _)) &
-    distinct(From, To) &
-    rule_outcome(Player, D, Capture, minusone).
 
 % All other cells should retains their respective state
 next(cell(Rc, OldCapture, OldPawnState)) :-
