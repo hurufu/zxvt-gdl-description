@@ -78,6 +78,11 @@ terminal :-
     player(Player) &
     true_for_each_cell(captured_by(Player)).
 
+% TODO: Game ends if an opposite side of a board is captured
+%terminal :-
+%    player(red) &
+%    cell(rc(3,3), captured_by(red), _).
+
 next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
     does(random, roll([D])) &
     does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
