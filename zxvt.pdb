@@ -9,6 +9,8 @@
 :- op(1000, xfy, '&').
 :- op(900, fy, '~').
 :- initialization(all_tests_are_passing).
+:- op(920,fy, '*').
+:- op(920,fy, '#').
 
 % Configuration
 max_row(3).
@@ -340,6 +342,10 @@ true(X) :- init(X).
     call(Lhs), call(Rhs).
 '~'(Rhs) :-
     \+ call(Rhs).
+'*'(_).
+'#'(Goal) :-
+    portray_clause(user_error, Goal),
+    call(Goal).
 
 % FIXME: It looks like distinct/2 should behave like dif/2
 distinct(A, B) :- A \= B.
