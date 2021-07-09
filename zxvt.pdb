@@ -321,6 +321,8 @@ d6(V) :-
 is_number(N) :-
     s(N, _).
 
+is_succ(X) :- sc(_, X).
+
 % A is less then or equal to B
 le(A, B) :- is_number(B) & s(A, X) & le(X, B).
 le(A, A) :- is_number(A).
@@ -336,6 +338,27 @@ s( 0, 1). s( 1, 2). s( 2, 3). s( 3, 4). s( 4, 5). s( 5, 6). s( 6, 7). s( 7, 8). 
 %s(70,71). s(71,72). s(72,73). s(73,74). s(74,75). s(75,76). s(76,77). s(77,78). s(78,79). s(79,80).
 %s(80,81). s(81,82). s(82,83). s(83,84). s(84,85). s(85,86). s(86,87). s(87,88). s(88,89). s(89,90).
 %s(90,91). s(91,92). s(92,93). s(93,94). s(94,95). s(95,96). s(96,97). s(97,98). s(98,99). s(99,100).
+
+% Alternative succesors (probably faster)
+sc( 0, 0).
+sc( 1, succ(0)).
+sc( 2, succ(succ(0))).
+sc( 3, succ(succ(succ(0)))).
+sc( 4, succ(succ(succ(succ(0))))).
+sc( 5, succ(succ(succ(succ(succ(0)))))).
+sc( 6, succ(succ(succ(succ(succ(succ(0))))))).
+sc( 7, succ(succ(succ(succ(succ(succ(succ(0)))))))).
+sc( 8, succ(succ(succ(succ(succ(succ(succ(succ(0))))))))).
+sc( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
+sc(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
+
+uni(A, succ(A)) :- is_succ(A).
+
+add(0, B, B) :- is_succ(B).
+add(A, B, succ(C)) :-
+    uni(Am1, A) &
+    add(Am1, B, C) &
+    is_succ(C).
 
 % Tests
 % TODO: Perform tests for all possible board configurations
