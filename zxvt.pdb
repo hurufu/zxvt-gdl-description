@@ -24,14 +24,14 @@ rules(Player, captured_by(Player), [nothing,  nothing, nothing, nothing, nothing
 rules(Player, wild,                [minusone, nothing, nothing, capture, capture, capture]) :- player(Player).
 
 % TODO: Consider something similar as a future rules
-rules(situation(army(of(P), count(X)), on(Tile,  owned_by(P))), d6(D), situation(army(of(P), count(X)), on(Tile,  owned_by(P)))) :- player(P), tile(Tile), d6(D), X #= X.
-rules(situation(army(of(P), count(X)), on(field,        wild)), d6(1), situation(army(of(P), count(Y)), on(field,        wild))) :- player(P), Y #= X-1.
-rules(situation(army(of(P), count(X)), on(field,        wild)), d6(D), situation(army(of(P), count(X)), on(field,        wild))) :- player(P), (D = 2; D = 3).
-rules(situation(army(of(P), count(X)), on(field,        wild)), d6(D), situation(army(of(P), count(X)), on(field, owned_by(P)))) :- player(P), (D = 4; D = 5).
-rules(situation(army(of(P), count(X)), on(field,        wild)), d6(6), situation(army(of(P), count(Y)), on(field,        wild))) :- player(P), Y #= X+1.
-rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(1), situation(army(of(P), count(Y)), on(field, owned_by(Q)))) :- Y #= X-1, P \= Q.
-rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(field, owned_by(Q)))) :- (D = 2; D = 3; D = 4), P \= Q.
-rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(field, owned_by(P)))) :- (D = 5; D = 6), P \= Q.
+rules(situation(army(of(P), count(     X )), on(Tile,  owned_by(P))), d6(D), situation(army(of(P), count(     X )), on(Tile,  owned_by(P)))) :- player(P) & tile(Tile) & d6(D) & is_succ(X).
+rules(situation(army(of(P), count(succ(X))), on(field,        wild)), d6(1), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(D), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P), (D = 2 | D = 3) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P), (D = 4 | D = 5) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field,        wild)), d6(6), situation(army(of(P), count(succ(X))), on(field,        wild))) :- player(P) & is_succ(X).
+rules(situation(army(of(P), count(succ(X))), on(field, owned_by(Q))), d6(1), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & (D = 2 | D = 3 | D = 4) & player(Q) & distinct(P, Q) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & (D = 5 | D = 6) & player(Q) & distinct(P, Q) & is_succ(X).
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(Y)), on(town,  owned_by(Q)))) :- (D = 1; D = 2), Y #= X-1, P \= Q.
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(Q)))) :- (D = 3; D = 4), P \= Q.
 %rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(P)))) :- (D = 5; D = 6), P \= Q.
@@ -247,6 +247,15 @@ roll_d6(2, [R1,R2]) :- d6(R1) & d6(R2).
 roll_d6(3, [R1,R2,R3]) :- d6(R1) & d6(R2) & d6(R3).
 roll_d6(4, [R1,R2,R3,R4]) :- d6(R1) & d6(R2) & d6(R3) & d6(R4).
 
+counted_dice(dice(D6), X) :-
+    roll_d6(N, D6) &
+    sc(N, X).
+
+head_tail_of_dice(R1, [], dice([R1])) :- roll_d6(_, [R1]).
+head_tail_of_dice(R1, [R2], dice([R1,R2])) :- roll_d6(_, [R1,R2]).
+head_tail_of_dice(R1, [R2,R3], dice([R1,R2,R3])) :- roll_d6(_, [R1,R2,R3]).
+head_tail_of_dice(R1, [R2,R3,R4], dice([R1,R2,R3,R4])) :- roll_d6(_, [R1,R2,R3,R4]).
+
 nth_element_d6(1, [R1,R2,R3,R4,R5,R6], R1) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
 nth_element_d6(2, [R1,R2,R3,R4,R5,R6], R2) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
 nth_element_d6(3, [R1,R2,R3,R4,R5,R6], R3) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
@@ -266,30 +275,24 @@ valid_rule_0(situation(army(Of, count(0)), On)) :-
 valid_rule(situation(army(of(P), count(X)), on(Tile,  wild))) :-
     valid_rule_aux(P, X, Tile).
 valid_rule(situation(army(of(P), count(X)), on(Tile,  owned_by(Q)))) :-
-    valid_rule_aux(P, X, Tile),
+    valid_rule_aux(P, X, Tile) &
     player(Q).
 valid_rule_aux(Player, Count, Tile) :-
-    player(Player),
-    number(Count),
+    player(Player) &
+    is_succ(Count) &
     tile(Tile).
 
-counted_dice(dice([]), 0).
-counted_dice(dice([H|T]), X) :- X #= 1 + Y, counted_dice(dice(T), Y), d6(H).
-
+count_of_situation(situation(army(Of, count(X)), On), X) :-
+    valid_rule(situation(army(Of, count(X)), On)).
 nrules(S, dice([]), S) :-
     valid_rule_0(S).
-nrules(Before, Roll, After) :-
-   Roll = dice([D6|T]),
-   Before = situation(army(_, count(B)), _),
-   counted_dice(Roll, B),
-   rules(Before, d6(D6), Current),
-   Current = situation(army(Of, count(C)), On),
-   N #= B - 1,
-   Next = situation(army(Of, count(N)), On),
-   nrules(Next, dice(T), Return),
-   Return = situation(army(ReturnArmy, count(R)), ReturnOn),
-   A #= R + 1 + C - B,
-   After = situation(army(ReturnArmy, count(A)), ReturnOn).
+nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
+    head_tail_of_dice(D6, T, Roll) &
+    counted_dice(Roll, succ(N)) &
+    count_of_situation(Before, succ(N)) &
+    rules(Before, d6(D6), situation(army(Of, count(C)), On)) &
+    nrules(situation(army(Of, count(N)), On), dice(T), situation(army(ReturnArmy, count(R)), ReturnOn)) &
+    add(A, succ(N), Tmp) & add(succ(R), C, Tmp).
 
 rule_outcome(Player, D6, CaptureType, Outcome) :-
     rules(Player, CaptureType, OutcomeList) &
@@ -399,13 +402,17 @@ pawn_0 :-
 current_state_is_not_terminal :-
     \+terminal.
 
+all_arithmetics_tests_are_passing :-
+    add(succ(0), succ(succ(0)), succ(succ(succ(0)))),
+    \+add(succ(0), succ(succ(0)), succ(succ(0))).
+
 all_rules_tests_are_passing :-
     rules_should_terminate_if_count_is_set_but_dice_list_is_not(_, _),
     rules_should_terminate_if_dice_list_is_set_but_count_is_not(_, _),
-    all_rules(red-on(field, wild), [6,6,1,1], [situation(army(of(red), count(4)), on(field,wild))]),
-    all_rules(red-on(field, wild), [2,1,1,4], [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
-    all_rules(red-on(field, wild), [1,2,5,6], [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
-    all_rules(red-on(field, owned_by(red)), [1], [situation(army(of(red), count(1)), on(field,owned_by(red)))]).
+    all_rules(red-on(field, wild), [6,6,1,1], [situation(army(of(red), count( succ(succ(succ(succ(0)))) )), on(field,wild))]),
+    all_rules(red-on(field, wild), [2,1,1,4], [situation(army(of(red), count( succ(succ(0))  )), on(field,owned_by(red)))]),
+    all_rules(red-on(field, wild), [1,2,5,6], [situation(army(of(red), count( succ(succ(succ(0))) )), on(field,owned_by(red)))]),
+    all_rules(red-on(field, owned_by(red)), [1], [situation(army(of(red), count( succ(0) )), on(field,owned_by(red)))]).
 
 rules_should_terminate_if_count_is_set_but_dice_list_is_not(L0, L1) :-
     findall(D, (nrules(situation(army(of(red), count(0)), on(field, wild)), D, _)), L0),
@@ -423,6 +430,7 @@ all_tests_are_passing :-
     all_scores_are_unambiguous_for_current_configuration,
     current_state_is_not_terminal,
     all_rules_tests_are_passing,
+    all_arithmetics_tests_are_passing,
     user_cannot_move_0_pawns.
 
 list_of_identical_values([]).
