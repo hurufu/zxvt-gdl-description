@@ -7,6 +7,7 @@
 
 % WARNING: Remove to get valid program in GDL-II (HRF)
 :- op(1000, xfy, '&').
+:- op(1100, xfy, '|').
 :- op(900, fy, '~').
 :- initialization(all_tests_are_passing).
 :- op(920,fy, '*').
@@ -410,6 +411,8 @@ true(X) :- init(X).
 
 '&'(Lhs, Rhs) :-
     call(Lhs), call(Rhs).
+'|'(Lhs, Rhs) :-
+    call(Lhs) ; call(Rhs).
 '~'(Rhs) :-
     \+ call(Rhs).
 '*'(_).
