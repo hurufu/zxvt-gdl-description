@@ -275,26 +275,26 @@ outcome(minusone).
 tile(field).
 %tile(town).
 
-valid_rule_0(situation(army(Of, count(0)), On)) :-
-    valid_rule(situation(army(Of, count(0)), On)).
-valid_rule(situation(army(of(P), count(X)), on(Tile,  wild))) :-
-    valid_rule_aux(P, X, Tile).
-valid_rule(situation(army(of(P), count(X)), on(Tile,  owned_by(Q)))) :-
-    valid_rule_aux(P, X, Tile) &
+valid_situation_0(situation(army(Of, count(0)), On)) :-
+    valid_situation(situation(army(Of, count(0)), On)).
+valid_situation(situation(army(of(P), count(X)), on(Tile,  wild))) :-
+    valid_situation_aux(P, X, Tile).
+valid_situation(situation(army(of(P), count(X)), on(Tile,  owned_by(Q)))) :-
+    valid_situation_aux(P, X, Tile) &
     player(Q).
-valid_rule_aux(Player, Count, Tile) :-
+valid_situation_aux(Player, Count, Tile) :-
     player(Player) &
     is_succ(Count) &
     tile(Tile).
 
 unify_situation(A, A) :-
-    valid_rule(A).
+    valid_situation(A).
 unify_dice(dice(A), dice(A)) :-
     roll_d6(_, A).
 count_of_situation(situation(army(Of, count(X)), On), X) :-
-    valid_rule(situation(army(Of, count(X)), On)).
+    valid_situation(situation(army(Of, count(X)), On)).
 nrules(S, dice([]), S) :-
-    valid_rule_0(S).
+    valid_situation_0(S).
 nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
     head_tail_of_dice(D6, T, Roll) &
     counted_dice(Roll, succ(N)) &
@@ -303,7 +303,7 @@ nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
     unify_dice(dice(T), DiceTail) &
     nrules(Next, DiceTail, Return) &
     add(A, succ(N), Tmp) & add(succ(R), C, Tmp) &
-    valid_rule(situation(army(ReturnArmy, count(A)), ReturnOn)) &
+    valid_situation(situation(army(ReturnArmy, count(A)), ReturnOn)) &
     unify_situation(situation(army(Of, count(N)), On), Next) &
     unify_situation(situation(army(ReturnArmy, count(R)), ReturnOn), Return).
 
