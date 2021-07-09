@@ -22,6 +22,19 @@ rich_ui(last_roll).
 rules(Player, captured_by(Player), [nothing,  nothing, nothing, nothing, nothing, nothing]) :- player(Player).
 rules(Player, wild,                [minusone, nothing, nothing, capture, capture, capture]) :- player(Player).
 
+% TODO: Consider something similar as a future rules
+rules(situation(army(of(P), count(X)), on(Tile,  owned_by(P))), d6(D), situation(army(of(P), count(X)), on(Tile,  owned_by(P)))) :- player(P), tile(Tile), d6(D), X #= X.
+rules(situation(army(of(P), count(X)), on(field,        wild)), d6(1), situation(army(of(P), count(Y)), on(field,        wild))) :- player(P), Y #= X-1.
+rules(situation(army(of(P), count(X)), on(field,        wild)), d6(D), situation(army(of(P), count(X)), on(field,        wild))) :- player(P), (D = 2; D = 3).
+rules(situation(army(of(P), count(X)), on(field,        wild)), d6(D), situation(army(of(P), count(X)), on(field, owned_by(P)))) :- player(P), (D = 4; D = 5).
+rules(situation(army(of(P), count(X)), on(field,        wild)), d6(6), situation(army(of(P), count(Y)), on(field,        wild))) :- player(P), Y #= X+1.
+rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(1), situation(army(of(P), count(Y)), on(field, owned_by(Q)))) :- Y #= X-1, P \= Q.
+rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(field, owned_by(Q)))) :- (D = 2; D = 3; D = 4), P \= Q.
+rules(situation(army(of(P), count(X)), on(field, owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(field, owned_by(P)))) :- (D = 5; D = 6), P \= Q.
+%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(Y)), on(town,  owned_by(Q)))) :- (D = 1; D = 2), Y #= X-1, P \= Q.
+%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(Q)))) :- (D = 3; D = 4), P \= Q.
+%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), d6(D), situation(army(of(P), count(X)), on(town,  owned_by(P)))) :- (D = 5; D = 6), P \= Q.
+
 % GDL
 role(random).
 role(red).
@@ -244,6 +257,39 @@ outcome(capture).
 outcome(nothing).
 outcome(minusone).
 
+tile(field).
+%tile(town).
+
+valid_rule_0(situation(army(Of, count(0)), On)) :-
+    valid_rule(situation(army(Of, count(0)), On)).
+valid_rule(situation(army(of(P), count(X)), on(Tile,  wild))) :-
+    valid_rule_aux(P, X, Tile).
+valid_rule(situation(army(of(P), count(X)), on(Tile,  owned_by(Q)))) :-
+    valid_rule_aux(P, X, Tile),
+    player(Q).
+valid_rule_aux(Player, Count, Tile) :-
+    player(Player),
+    number(Count),
+    tile(Tile).
+
+counted_dice(dice([]), 0).
+counted_dice(dice([H|T]), X) :- X #= 1 + Y, counted_dice(dice(T), Y), d6(H).
+
+nrules(S, dice([]), S) :-
+    valid_rule_0(S).
+nrules(Before, Roll, After) :-
+   Roll = dice([D6|T]),
+   Before = situation(army(_, count(B)), _),
+   counted_dice(Roll, B),
+   rules(Before, d6(D6), Current),
+   Current = situation(army(Of, count(C)), On),
+   N #= B - 1,
+   Next = situation(army(Of, count(N)), On),
+   nrules(Next, dice(T), Return),
+   Return = situation(army(ReturnArmy, count(R)), ReturnOn),
+   A #= R + 1 + C - B,
+   After = situation(army(ReturnArmy, count(A)), ReturnOn).
+
 rule_outcome(Player, D6, CaptureType, Outcome) :-
     rules(Player, CaptureType, OutcomeList) &
     nth_element_d6(D6, OutcomeList, Outcome).
@@ -325,12 +371,30 @@ pawn_0 :-
 current_state_is_not_terminal :-
     ~terminal.
 
+all_rules_tests_are_passing :-
+    rules_should_terminate_if_count_is_set_but_dice_list_is_not(_, _),
+    rules_should_terminate_if_dice_list_is_set_but_count_is_not(_, _),
+    all_rules(red-on(field, wild), [6,6,1,1], [situation(army(of(red), count(4)), on(field,wild))]),
+    all_rules(red-on(field, wild), [2,1,1,4], [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
+    all_rules(red-on(field, wild), [1,2,5,6], [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
+    all_rules(red-on(field, owned_by(red)), [1], [situation(army(of(red), count(1)), on(field,owned_by(red)))]).
+
+rules_should_terminate_if_count_is_set_but_dice_list_is_not(L0, L1) :-
+    findall(D, (nrules(situation(army(of(red), count(0)), on(field, wild)), D, _)), L0),
+    findall(D, (nrules(situation(army(of(red), count(1)), on(field, wild)), D, _)), L1).
+rules_should_terminate_if_dice_list_is_set_but_count_is_not(L0, L1) :-
+    findall(Before, (nrules(Before, dice([]), _)), L0),
+    findall(Before, (nrules(Before, dice([1]), _)), L1).
+all_rules(Player-On, Dice, AllPossibleOutcomes) :-
+    findall(After, nrules(situation(army(of(Player), count(_)), On), dice(Dice), After), AllPossibleOutcomes).
+
 all_tests_are_passing :-
     all_statements_about_current_configuration_are_valid &
     all_legal_moves_for_current_configuration_are_valid &
     all_roles_have_a_score_for_current_configuration &
     all_scores_are_unambiguous_for_current_configuration &
     current_state_is_not_terminal &
+    all_rules_tests_are_passing &
     user_cannot_move_0_pawns.
 
 list_of_identical_values([]).
