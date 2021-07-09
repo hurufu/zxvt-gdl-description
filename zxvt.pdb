@@ -337,39 +337,40 @@ s( 0, 1). s( 1, 2). s( 2, 3). s( 3, 4). s( 4, 5). s( 5, 6). s( 6, 7). s( 7, 8). 
 % TODO: Perform tests for all possible board configurations
 % TODO: All players have at least 1 legal move in current non-terminal state
 all_statements_about_current_configuration_are_valid :-
-    ~invalid_statement_for_current_configuration_exists(_).
+    \+invalid_statement_for_current_configuration_exists(_).
 invalid_statement_for_current_configuration_exists(I) :-
-    true(I) &
-    ~base(I).
+    true(I),
+    \+base(I).
 
 all_legal_moves_for_current_configuration_are_valid :-
-    ~invalid_but_legal_move_for_current_configuration_exists(_, _).
+    \+invalid_but_legal_move_for_current_configuration_exists(_, _).
 invalid_but_legal_move_for_current_configuration_exists(Role, Move) :-
-    legal(Role, Move) &
-    ~input(Role, Move).
+    legal(Role, Move),
+    \+input(Role, Move).
 
 all_roles_have_a_score_for_current_configuration :-
-    ~there_is_a_role_without_a_score_for_current_configuration(_).
+    \+there_is_a_role_without_a_score_for_current_configuration(_).
 there_is_a_role_without_a_score_for_current_configuration(Role) :-
-    role(Role) &
-    ~goal(Role, _).
+    role(Role),
+    \+goal(Role, _).
 
 all_scores_are_unambiguous_for_current_configuration :-
-    ~there_is_a_role_with_ambiguous_score(_).
+    \+there_is_a_role_with_ambiguous_score(_).
 there_is_a_role_with_ambiguous_score(Role) :-
-    role(Role) & ~role_scores_are_unambiguous(Role).
+    role(Role),
+    \+role_scores_are_unambiguous(Role).
 role_scores_are_unambiguous(Role) :-
-    findall(Score, (goal(Role, Score)), AllScores) &
+    findall(Score, (goal(Role, Score)), AllScores),
     list_of_identical_values(AllScores).
 
 user_cannot_move_0_pawns :-
-    ~pawn_0.
+    \+pawn_0.
 pawn_0 :-
-    stack(NumberOfAllowedPawns) &
-    ~le(0, NumberOfAllowedPawns).
+    stack(NumberOfAllowedPawns),
+    \+le(0, NumberOfAllowedPawns).
 
 current_state_is_not_terminal :-
-    ~terminal.
+    \+terminal.
 
 all_rules_tests_are_passing :-
     rules_should_terminate_if_count_is_set_but_dice_list_is_not(_, _),
@@ -389,12 +390,12 @@ all_rules(Player-On, Dice, AllPossibleOutcomes) :-
     findall(After, nrules(situation(army(of(Player), count(_)), On), dice(Dice), After), AllPossibleOutcomes).
 
 all_tests_are_passing :-
-    all_statements_about_current_configuration_are_valid &
-    all_legal_moves_for_current_configuration_are_valid &
-    all_roles_have_a_score_for_current_configuration &
-    all_scores_are_unambiguous_for_current_configuration &
-    current_state_is_not_terminal &
-    all_rules_tests_are_passing &
+    all_statements_about_current_configuration_are_valid,
+    all_legal_moves_for_current_configuration_are_valid,
+    all_roles_have_a_score_for_current_configuration,
+    all_scores_are_unambiguous_for_current_configuration,
+    current_state_is_not_terminal,
+    all_rules_tests_are_passing,
     user_cannot_move_0_pawns.
 
 list_of_identical_values([]).
