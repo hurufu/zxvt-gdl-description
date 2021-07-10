@@ -311,6 +311,11 @@ nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
     unify_situation(situation(army(Of, count(N)), On), Next) &
     unify_situation(situation(army(ReturnArmy, count(R)), ReturnOn), Return).
 
+nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(nobody, On)) :-
+    nrules(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(_, count(0)), On)).
+nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)) :-
+    nrules(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)).
+
 rule_outcome(Player, D6, CaptureType, Outcome) :-
     rules(Player, CaptureType, OutcomeList) &
     nth_element_d6(D6, OutcomeList, Outcome).
