@@ -296,6 +296,7 @@ unify_dice(dice(A), dice(A)) :-
     roll_d6(_, A).
 count_of_situation(situation(army(Of, count(X)), On), X) :-
     valid_situation(situation(army(Of, count(X)), On)).
+
 nrules(S, dice([]), S) :-
     valid_situation_0(S).
 nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
