@@ -24,7 +24,7 @@ rules(Player, captured_by(Player), [nothing,  nothing, nothing, nothing, nothing
 rules(Player, wild,                [minusone, nothing, nothing, capture, capture, capture]) :- player(Player).
 
 % TODO: Consider something similar as a future rules
-rules(situation(army(of(P), count(     X )), on(Tile,  owned_by(P))), die(D), situation(army(of(P), count(     X )), on(Tile,  owned_by(P)))) :- player(P) & tile(Tile) & d6(D) & is_succ(X).
+rules(situation(army(of(P), count(     X )), on(Tile,  owned_by(P))), die(D), situation(army(of(P), count(     X )), on(Tile,  owned_by(P)))) :- player(P) & valid_tile(Tile) & d6(D) & is_succ(X).
 rules(situation(army(of(P), count(succ(X))), on(field,        wild)), die(1), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
 rules(situation(army(of(P), count(     X )), on(field,        wild)), die(2), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
 rules(situation(army(of(P), count(     X )), on(field,        wild)), die(3), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
@@ -272,20 +272,23 @@ outcome(capture).
 outcome(nothing).
 outcome(minusone).
 
-tile(field).
-%tile(town).
+valid_situation_0(situation(army(of(Player), count(0)), On)) :-
+    valid_situation(situation(nobody, On)) &
+    player(Player).
+valid_situation(situation(Occupation, on(Tile,  Ownership))) :-
+    valid_occupation(Occupation) &
+    valid_tile(Tile) &
+    valid_ownerhip(Ownership).
 
-valid_situation_0(situation(army(Of, count(0)), On)) :-
-    valid_situation(situation(army(Of, count(0)), On)).
-valid_situation(situation(army(of(P), count(X)), on(Tile,  wild))) :-
-    valid_situation_aux(P, X, Tile).
-valid_situation(situation(army(of(P), count(X)), on(Tile,  owned_by(Q)))) :-
-    valid_situation_aux(P, X, Tile) &
-    player(Q).
-valid_situation_aux(Player, Count, Tile) :-
+valid_tile(field).
+%valid_tile(town).
+valid_ownerhip(wild).
+valid_ownerhip(owned_by(Player)) :-
+    player(Player).
+valid_occupation(nobody).
+valid_occupation(army(of(Player), count(X))) :-
     player(Player) &
-    is_succ(Count) &
-    tile(Tile).
+    is_succ(X).
 
 unify_situation(A, A) :-
     valid_situation(A).
