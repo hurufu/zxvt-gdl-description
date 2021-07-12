@@ -466,6 +466,11 @@ value_of_all_elements_of_a_list(_, []).
 value_of_all_elements_of_a_list(H, [H|T]) :-
     value_of_all_elements_of_a_list(H, T).
 
+always_halts(Goal) :-
+    \+doesnt_halt(Goal).
+doesnt_halt(Goal) :-
+    call(Goal), false.
+
 % Assert that current configuration is initial
 true(X) :- init(X).
 
