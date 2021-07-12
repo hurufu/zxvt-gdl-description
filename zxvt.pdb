@@ -386,7 +386,7 @@ val(A) :- ns_val(ns(A, _)).
 eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
 le(A, B) :- ns_le(ns(A, _), ns(B, _)).
 lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
-add(A, B, C) :- ns_sum(ns(A, _), ns(B, _), ns(C, _)).
+add(A, B, C) :- ns_add(ns(A, _), ns(B, _), ns(C, _)).
 %mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
 %pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
 
@@ -401,12 +401,12 @@ add(A, B, C) :- ns_sum(ns(A, _), ns(B, _), ns(C, _)).
 %ns_mul(A, B, C) :-
 %    ns_suc(Am1, A) &
 %    ns_mul(Am1, B, Part) &
-%    ns_sum(B, Part, C).
-ns_sum(ns(0, 0), B, B) :-
+%    ns_add(B, Part, C).
+ns_add(ns(0, 0), B, B) :-
     ns_val(B).
-ns_sum(A, B, C) :-
+ns_add(A, B, C) :-
     ns_suc(Am1, A) &
-    ns_sum(Am1, B, X) &
+    ns_add(Am1, B, X) &
     ns_suc(X, C) &
     ns_val(B).
 ns_suc(ns(An, As), ns(Bn, succ(As))) :-
