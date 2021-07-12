@@ -40,10 +40,9 @@ role(red).
 input(random, roll(L)) :-
     valid_dice(L).
 % Any player can move at least 1 pawn to any neighboring cell
-input(Player, move(NumberOfPawns, from(From), to(To))) :-
+input(Player, Move) :-
     player(Player) &
-    le(1, NumberOfPawns) &
-    neighboring_rc(From, To).
+    valid_move(Move).
 % Any player can spawn pawns only at a starting position
 input(Player, spawn(at(StartPosition))) :-
     start_position(Player, StartPosition).
@@ -63,18 +62,15 @@ init(Cell) :-
     distinct(StartPosition, Rc).
 init(control(red)).
 
-% TODO: Number of dice thrown should be equal to the largest player's pawn stack
-legal(random, roll([D])) :-
+legal(random, roll(Dice)) :-
     true(control(Player)) &
-    roll_d6(N, [D]) & ns_val(N, S) &
-    true(cell(_, situation(army(of(Player), count(S)), _))).
+    max_pawn_stack(Player, Max) &
+    valid_dice(Max, Dice).
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     true(control(Player)) &
     true(cell(From, situation(army(of(Player), count(StationaryPawns)), _))) &
-    player(Player) &
-    neighboring_rc(From, To) &
-    stack(MovingPawns) &
-    le(MovingPawns, StationaryPawns).
+    le(MovingPawns, StationaryPawns) &
+    valid_move(move(MovingPawns, from(From), to(To))).
 legal(Player, spawn(at(StartPosition))) :-
     true(control(Player)) &
     start_position(Player, StartPosition) &
@@ -215,6 +211,14 @@ true_for_each_cell_occupation(Occupation) :-
     true(cell(rc(3,2), _, Occupation)) &
     true(cell(rc(3,3), _, Occupation)).
 
+% TODO: max_pawn_stack/2 should succeed only once
+max_pawn_stack(Player, MaxPawnStack) :-
+    true(cell(_, situation(army(of(Player), count(MaxPawnStack)), _))) &
+    ~there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack).
+there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack) :-
+    lt(MaxPawnStack, N) &
+    true(cell(_, situation(army(of(Player), count(N)), _))).
+
 % Utils with complete definitions
 neighboring_rc(A, B) :-
     valid_rc(A) &
@@ -342,19 +346,24 @@ valid_die(5).
 valid_die(6).
 valid_dice(L) :-
     type_nl(valid_die, nl(_, L)).
+valid_dice(Number, Dice) :-
+    type_nl(valid_die, nl(Number, Dice)).
+
+valid_move(move(NumberOfPawns, from(From), to(To))) :-
+    le(1, NumberOfPawns) &
+    neighboring_rc(From, To).
 
 % Dice utils
-roll_d6(N, L) :- type_nl(d6, nl(N, L)).
 head_tail_of_dice(H, T, dice(L)) :- type_list_head_tail(d6, L, H, T).
-counted_dice(dice(L), N) :- type_nl(d6, nl(N, L)).
+counted_dice(dice(L), N) :- type_nl(valid_die, nl(N, L)).
 
 % List utils
-type(d6).
 type(outcome).
 type(valid_die).
-type_element(d6, Element) :- d6(Element).
+%type(num).
 type_element(outcome, Element) :- outcome(Element).
 type_element(valid_die, Element) :- valid_die(Element).
+%type_element(num, Element) :- num(Element).
 
 type_nl_00(Tp, []) :- type(Tp).
 type_nl_01(Tp, [H]) :- type_element(Tp, H) & type_nl_00(Tp, []).
@@ -380,14 +389,25 @@ nth_element(Tp, N, L, E) :-
     add(1, M, N) &
     nth_element(Tp, M, T, E).
 
+%% Numeric list utils
+%num_list_head_tail(List, H, T) :-
+%    type_list_head_tail(num, List, H, T).
+%max_element([Max], Max).
+%max_element(L, Max) :-
+%    num_list_head_tail(L, H, T) &
+%    max_element(T, OldMax) &
+%    maximum(H, OldMax, Max).
+
 % Arithmetic utils
 num(A) :- ns_val(ns(A, _)).
 eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
 le(A, B) :- ns_le(ns(A, _), ns(B, _)).
-%lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
+lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
 add(A, B, C) :- ns_add(ns(A, _), ns(B, _), ns(C, _)).
 %mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
 %pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
+maximum(A, B, A) :- lt(B, A).
+maximum(A, B, B) :- le(A, B).
 
 %ns_pow(ns(An, succ(S)), ns(0, 0), ns(1, succ(0))) :-
 %    ns_val(ns(An, succ(S))).
@@ -419,9 +439,9 @@ ns_le(A, B) :-
     ns_val(A).
 ns_eq(A, A) :-
     ns_val(A).
-%ns_lt(A, B) :-
-%    ns_le(A, B) &
-%    distinct(A, B).
+ns_lt(A, B) :-
+    ns_le(A, B) &
+    distinct(A, B).
 
 ns_val(ns( 0, 0)).
 ns_val(ns( 1, succ(0))).
@@ -485,7 +505,7 @@ all_arithmetic_predicates_always_halt :-
     always_halts(num(_)),
     always_halts(eq(_, _)),
     always_halts(le(_, _)),
-   *always_halts(lt(_, _)),
+    always_halts(lt(_, _)),
     always_halts(add(_, _, _)),
    *always_halts(mul(_, _, _)),
    *always_halts(pow(_, _, _)).
@@ -516,12 +536,26 @@ player_can_move_0_pawns(P) :-
 
 % Rules tests
 % TODO: Perform tests for all possible board configurations
+valid_board_configuration :-
+    asserta.
+
 % TODO: All players have at least 1 legal move in current non-terminal state
 all_statements_about_current_configuration_are_valid :-
     \+invalid_statement_for_current_configuration_exists(_).
 invalid_statement_for_current_configuration_exists(I) :-
     true(I),
     \+base(I).
+
+max_pawn_stack_is_ok_for_the_current_configuration :-
+    \+there_is_a_discrepancy_for_max_pawn_stack_predicate_with_a_reference_implementation(_,_,_).
+there_is_a_discrepancy_for_max_pawn_stack_predicate_with_a_reference_implementation(Player, MaxPawnStack, ReferenceMaxPawnStack) :-
+    max_pawn_stack(Player, MaxPawnStack),
+    reference_max_pawn_stack(Player, ReferenceMaxPawnStack),
+    MaxPawnStack \= ReferenceMaxPawnStack.
+
+reference_max_pawn_stack(Player, Max) :-
+    findall(N, true(cell(_, situation(army(of(Player), count(N)), _))), Army) &
+    max_list(Army, Max).
 
 all_legal_moves_for_current_configuration_are_valid :-
     \+invalid_but_legal_move_for_current_configuration_exists(_, _).
@@ -566,7 +600,8 @@ all_rules(Player-On, Dice, AllPossibleOutcomes) :-
 
 all_tests_are_passing :-
     all_statements_about_current_configuration_are_valid,
-   *all_legal_moves_for_current_configuration_are_valid,
+    max_pawn_stack_is_ok_for_the_current_configuration,
+    all_legal_moves_for_current_configuration_are_valid,
    *all_roles_have_a_score_for_current_configuration,
    *all_scores_are_unambiguous_for_current_configuration,
    *current_state_is_not_terminal,
