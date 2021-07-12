@@ -55,10 +55,10 @@ base(last_roll(D, Outcome)) :-
     valid_die(D) &
     valid_outcome(Outcome).
 
-init(cell(StartPosition, situation(army(of(Player), count(succ(0))), on(field, owned_by(Player))))) :-
+init(cell(StartPosition, situation(army(of(Player), count(1)), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
-init(cell(Rc, situation(nobody, on(field, wild)))) :-
-    valid_cell(cell(Rc, situation(nobody, on(field, wild)))) &
+init(Cell) :-
+    unify_cell(Cell, cell(Rc, situation(nobody, on(field, wild)))) &
     start_position(_, StartPosition) &
     distinct(StartPosition, Rc).
 init(control(red)).
@@ -282,6 +282,7 @@ count_of_situation(situation(army(Of, count(X)), On), X) :-
 % Unification predicates
 unify_situation(A, A) :- valid_situation(A).
 unify_die(A, A) :- valid_die(A).
+unify_cell(A, A) :- valid_cell(A).
 
 % Validation predicates
 valid_outcome(capture).
@@ -319,8 +320,7 @@ valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
 
 valid_cell(cell(Coordinates, Situation)) :-
     valid_rc(Coordinates) &
-    valid_occupation_non_0(Occupation) &
-    unify_situation(Situation, situation(Occupation, _)).
+    valid_situation(Situation).
 
 valid_row(I) :-
     max_row(MaxRow) &
@@ -565,7 +565,7 @@ all_rules(Player-On, Dice, AllPossibleOutcomes) :-
     findall(After, nrules(situation(army(of(Player), count(_)), On), dice(Dice), After), AllPossibleOutcomes).
 
 all_tests_are_passing :-
-   *all_statements_about_current_configuration_are_valid,
+    all_statements_about_current_configuration_are_valid,
    *all_legal_moves_for_current_configuration_are_valid,
    *all_roles_have_a_score_for_current_configuration,
    *all_scores_are_unambiguous_for_current_configuration,
