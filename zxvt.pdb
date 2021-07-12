@@ -17,30 +17,19 @@
 % Configuration
 max_row(3).
 max_col(3).
-max_stack(1).
+player(red).
 start_position(red, rc(1,1)).
 rich_ui(no_rich_ui).%Avoid exception if all UI enrichments are disabled
 rich_ui(last_roll).
-rules(Player, captured_by(Player), [nothing,  nothing, nothing, nothing, nothing, nothing]) :- player(Player).
-rules(Player, wild,                [minusone, nothing, nothing, capture, capture, capture]) :- player(Player).
-
-% TODO: Consider something similar as a future rules
-rules(situation(army(of(P), count(     X )), on(Tile,  owned_by(P))), die(D), situation(army(of(P), count(     X )), on(Tile,  owned_by(P)))) :- player(P) & valid_tile(Tile) & d6(D) & is_succ(X).
-rules(situation(army(of(P), count(succ(X))), on(field,        wild)), die(1), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), die(2), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), die(3), situation(army(of(P), count(     X )), on(field,        wild))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), die(4), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), die(5), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field,        wild)), die(6), situation(army(of(P), count(succ(X))), on(field,        wild))) :- player(P) & is_succ(X).
-rules(situation(army(of(P), count(succ(X))), on(field, owned_by(Q))), die(1), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), die(2), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), die(3), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), die(4), situation(army(of(P), count(     X )), on(field, owned_by(Q)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), die(5), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-rules(situation(army(of(P), count(     X )), on(field, owned_by(Q))), die(6), situation(army(of(P), count(     X )), on(field, owned_by(P)))) :- player(P) & player(Q) & distinct(P, Q) & is_succ(X).
-%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), die(D), situation(army(of(P), count(Y)), on(town,  owned_by(Q)))) :- (D = 1; D = 2), Y #= X-1, P \= Q.
-%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), die(D), situation(army(of(P), count(X)), on(town,  owned_by(Q)))) :- (D = 3; D = 4), P \= Q.
-%rules(situation(army(of(P), count(X)), on(town,  owned_by(Q))), die(D), situation(army(of(P), count(X)), on(town,  owned_by(P)))) :- (D = 5; D = 6), P \= Q.
+rules(own,     any,      [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
+rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
+rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
+rules(wild,    garrison, [minus(1),minus(1),minus(1),nothing ,capture,plus(1)]).
+rules(wild,    fort,     [minus(1),minus(1),minus(1),capture ,plus(1),plus(1)]).
+rules(foreign, field,    [minus(1),minus(1),nothing ,nothing ,capture,capture]).
+rules(foreign, town,     [minus(1),minus(1),nothing ,nothing ,nothing,capture]).
+rules(foreign, garrison, [minus(1),minus(1),minus(1),nothing ,capture,capture]).
+rules(foreign, fort,     [minus(1),minus(1),minus(1),minus(1),nothing,capture]).
 
 % GDL
 role(random).
@@ -65,28 +54,29 @@ base(last_roll(D6, Outcome)) :-
     d6(D6) &
     outcome(Outcome).
 
-init(cell(StartPosition, captured_by(Player), with_pawn(of(Player), number(1)))) :-
+init(cell(StartPosition, situation(army(of(Player), count(succ(0))), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
-init(cell(Rc, wild, free)) :-
-    valid_cell(cell(Rc, wild, free)) &
+init(cell(Rc, situation(nobody, on(field, wild)))) :-
+    valid_cell(cell(Rc, situation(nobody, on(field, wild)))) &
     start_position(_, StartPosition) &
     distinct(StartPosition, Rc).
 init(control(red)).
 
 % TODO: Number of dice thrown should be equal to the largest player's pawn stack
-legal(random, roll([D6])) :-
+legal(random, roll([D])) :-
     true(control(Player)) &
-    player(Player) &
-    d6(D6).
+    roll_d6(N, [D]) & is_ns(N, S) &
+    true(cell(_, situation(army(of(Player), count(S)), _))).
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     true(control(Player)) &
-    true(cell(From, _, with_pawn(of(Player), number(StationaryPawns)))) &
+    true(cell(From, situation(army(of(Player), count(StationaryPawns)), _))) &
     player(Player) &
     neighboring_coordinates(From, To) &
     stack(MovingPawns) &
     le(MovingPawns, StationaryPawns).
-legal(Player, spawn(at(rc(1,1)))) :-
+legal(Player, spawn(at(StartPosition))) :-
     true(control(Player)) &
+    start_position(Player, StartPosition) &
     true_for_each_cell_occupation(free).
 
 goal(random, 0).
@@ -233,6 +223,7 @@ col(I) :-
     max_col(MaxCol) &
     le(1, I) & le(I, MaxCol).
 
+% TODO: Consider removing stack/1
 stack(PossiblePawnStack) :-
     max_stack(MaxStack) &
     le(1, PossiblePawnStack) & le(PossiblePawnStack, MaxStack).
@@ -247,31 +238,10 @@ neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- is_number(R) & s(Rc, Lc).
 neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Lr, Rr).
 neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Rr, Lr).
 
-roll_d6(0, []).
-roll_d6(1, [R1]) :- d6(R1).
-roll_d6(2, [R1,R2]) :- d6(R1) & d6(R2).
-roll_d6(3, [R1,R2,R3]) :- d6(R1) & d6(R2) & d6(R3).
-roll_d6(4, [R1,R2,R3,R4]) :- d6(R1) & d6(R2) & d6(R3) & d6(R4).
-
-counted_dice(dice(D6), X) :-
-    roll_d6(N, D6) &
-    sc(N, X).
-
-head_tail_of_dice(R1, [], dice([R1])) :- roll_d6(_, [R1]).
-head_tail_of_dice(R1, [R2], dice([R1,R2])) :- roll_d6(_, [R1,R2]).
-head_tail_of_dice(R1, [R2,R3], dice([R1,R2,R3])) :- roll_d6(_, [R1,R2,R3]).
-head_tail_of_dice(R1, [R2,R3,R4], dice([R1,R2,R3,R4])) :- roll_d6(_, [R1,R2,R3,R4]).
-
-nth_element_d6(1, [R1,R2,R3,R4,R5,R6], R1) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-nth_element_d6(2, [R1,R2,R3,R4,R5,R6], R2) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-nth_element_d6(3, [R1,R2,R3,R4,R5,R6], R3) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-nth_element_d6(4, [R1,R2,R3,R4,R5,R6], R4) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-nth_element_d6(5, [R1,R2,R3,R4,R5,R6], R5) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-nth_element_d6(6, [R1,R2,R3,R4,R5,R6], R6) :- outcome(R1) & outcome(R2) & outcome(R3) & outcome(R4) & outcome(R5) & outcome(R6).
-
 outcome(capture).
 outcome(nothing).
-outcome(minusone).
+outcome(minus(N)) :- is_number(N).
+outcome(plus(N)) :- is_number(N).
 
 valid_situation_0(situation(army(of(Player), count(0)), On)) :-
     valid_situation(situation(nobody, On)) &
@@ -281,13 +251,24 @@ valid_situation(situation(Occupation, on(Tile,  Ownership))) :-
     valid_tile(Tile) &
     valid_ownerhip(Ownership).
 
+pct(P, C, T) :- pc(P, C) & valid_tile(T).
+pcq(P, C, Q) :- pc(P, C) & player(Q) & distinct(P, Q).
+pc(P, count(succ(X))) :- player(P) & is_succ(X).
+
 valid_tile(field).
-%valid_tile(town).
+valid_tile(town).
+valid_tile(garrison).
+valid_tile(fort).
+
 valid_ownerhip(wild).
 valid_ownerhip(owned_by(Player)) :-
     player(Player).
 valid_occupation(nobody).
 valid_occupation(army(of(Player), count(X))) :-
+    player(Player) &
+    is_succ(X).
+valid_occupation_non_0(nobody).
+valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
     player(Player) &
     is_succ(X).
 
@@ -304,7 +285,7 @@ nrules(Before, Roll, situation(army(ReturnArmy, count(A)), ReturnOn)) :-
     head_tail_of_dice(D6, T, Roll) &
     counted_dice(Roll, succ(N)) &
     count_of_situation(Before, succ(N)) &
-    rules(Before, die(D6), situation(army(Of, count(C)), On)) &
+    rules_(Before, die(D6), situation(army(Of, count(C)), On)) &
     unify_dice(dice(T), DiceTail) &
     nrules(Next, DiceTail, Return) &
     add(A, succ(N), Tmp) & add(succ(R), C, Tmp) &
@@ -317,18 +298,41 @@ nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situat
 nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)) :-
     nrules(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)).
 
-rule_outcome(Player, D6, CaptureType, Outcome) :-
-    rules(Player, CaptureType, OutcomeList) &
-    nth_element_d6(D6, OutcomeList, Outcome).
 
-player(Player) :-
-    role(Player) &
-    distinct(random, Player).
+rules(S, L) :-
+    unify_situation(S, situation(army(of(P), _, on(_, owned_by(P))))) &
+    rules(own, any, L).
+rules(S, L) :-
+    unify_situation(S, situation(army(of(_), _, on(Tile, wild       )))) &
+    rules(wild, Tile, L).
+rules(S, L) :-
+    unify_situation(S, situation(army(of(P), _, on(Tile, owned_by(Q))))) &
+    distinct(P, Q) &
+    rules(foreign, Tile, L).
 
-valid_cell(cell(Coordinates, Type, WithPawn)) :-
+rules_(Before, die(D), After) :-
+    rule_book(Before, L) &
+    nth_element(outcome, D, L, Outcome) &
+    rule_b_outcome(Outcome, Before, After).
+
+rule_b_outcome(minus(N), Before, After) :-
+    unify_situation(Before, situation(army(Of, count(B)), On)) &
+    add(ns(N, _), ns(_, A), ns(_, B)) &
+    unify_situation(After, situation(army(Of, count(A)), On)).
+rule_b_outcome(plus(N), Before, After) :-
+    unify_situation(Before, situation(army(Of, count(B)), On)) &
+    add(ns(N, _), ns(_, B), ns(_, A)) &
+    unify_situation(After, situation(army(Of, count(A)), On)).
+rule_b_outcome(nothing, Before, After) :-
+    unify_situation(Before, After).
+rule_b_outcome(capture, Before, After) :-
+    unify_situation(Before, situation(army(of(P), Count, on(Tile, _)))) &
+    unify_situation(After, situation(army(of(P), Count, on(Tile, owned_by(P))))).
+
+valid_cell(cell(Coordinates, Situation)) :-
     coordinates(Coordinates) &
-    cell_type(Type) &
-    valid_pawn(WithPawn).
+    valid_occupation_non_0(Occupation) &
+    unify_situation(Situation, situation(Occupation, _)).
 
 coordinates(rc(Row, Column)) :- row(Row) & col(Column).
 
