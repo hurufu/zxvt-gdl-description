@@ -419,7 +419,7 @@ ns_le(A, B) :-
     ns_le(A, X) &
     ns_val(A).
 ns_eq(A, A) :-
-    ns_le(A, A).
+    ns_val(A).
 ns_lt(A, B) :-
     ns_le(A, B) &
     distinct(A, B).
