@@ -377,39 +377,63 @@ nth_element(Tp, 1, L, H) :-
     type_list_head_tail(Tp, L, H, _).
 nth_element(Tp, N, L, E) :-
     type_list_head_tail(Tp, L, _, T) &
-    add(ns(1, _), ns(M, _), ns(N, _)) &
+    add(1, M, N) &
     nth_element(Tp, M, T, E).
 
 % Arithmetic utils
-is_number(N) :- is_ns(ns(N, _)).
-is_succ(S) :- is_ns(ns(_, S)).
+val(A) :- ns_val(ns(A, _)).
+eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
+le(A, B) :- ns_le(ns(A, _), ns(B, _)).
+lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
+add(A, B, C) :- ns_sum(ns(A, _), ns(B, _), ns(C, _)).
+mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
+pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
 
-le(A, A) :- is_ns(A).
-le(A, B) :-
-    suc(X, B) &
-    le(A, X).
-uni(A, A) :- is_ns(A).
-suc(A, B) :-
-    uni(A, ns(_, As)) &
-    uni(B, ns(_, succ(As))).
-add(ns(0,0), B, B) :- is_ns(B).
-add(A, B, C) :-
-    suc(Am1, A) &
-    add(Am1, B, X) &
-    suc(X, C) &
-    is_ns(B).
+ns_pow(ns(An, succ(S)), ns(0, 0), ns(1, succ(0))) :-
+    ns_val(ns(An, succ(S))).
+ns_pow(A, B, C) :-
+    ns_suc(Bm1, B) &
+    ns_pow(A, Bm1, Part) &
+    ns_mul(Part, A, C).
+ns_mul(ns(0, 0), B, ns(0, 0)) :-
+    ns_val(B).
+ns_mul(A, B, C) :-
+    ns_suc(Am1, A) &
+    ns_mul(Am1, B, Part) &
+    ns_sum(B, Part, C).
+ns_sum(ns(0, 0), B, B) :-
+    ns_val(B).
+ns_sum(A, B, C) :-
+    ns_suc(Am1, A) &
+    ns_sum(Am1, B, X) &
+    ns_suc(X, C) &
+    ns_val(B).
+ns_suc(ns(An, As), ns(Bn, succ(As))) :-
+    ns_val(ns(An, As)) &
+    ns_val(ns(Bn, succ(As))).
+ns_le(A, A) :-
+    ns_val(A).
+ns_le(A, B) :-
+    ns_suc(X, B) &
+    ns_le(A, X) &
+    ns_val(A).
+ns_eq(A, A) :-
+    ns_le(A, A).
+ns_lt(A, B) :-
+    ns_le(A, B) &
+    distinct(A, B).
 
-is_ns(ns( 0, 0)).
-is_ns(ns( 1, succ(0))).
-is_ns(ns( 2, succ(succ(0)))).
-is_ns(ns( 3, succ(succ(succ(0))))).
-is_ns(ns( 4, succ(succ(succ(succ(0)))))).
-is_ns(ns( 5, succ(succ(succ(succ(succ(0))))))).
-is_ns(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
-is_ns(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
-is_ns(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
-is_ns(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
-is_ns(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
+ns_val(ns( 0, 0)).
+ns_val(ns( 1, succ(0))).
+ns_val(ns( 2, succ(succ(0)))).
+ns_val(ns( 3, succ(succ(succ(0))))).
+ns_val(ns( 4, succ(succ(succ(succ(0)))))).
+ns_val(ns( 5, succ(succ(succ(succ(succ(0))))))).
+ns_val(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
+ns_val(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
+ns_val(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
+ns_val(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
+ns_val(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
 
 % Prolog code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -418,12 +442,12 @@ all_arithmetics_tests_are_passing :-
     all_arithmetic_predicates_always_halt,
     all_numbers_are_legal,
     all_le_tests,
-    all_addition_tests.
+    all_summation_tests.
 
 all_numbers_are_legal :-
-    \+is_number_generates_illegal_number(_).
-is_number_generates_illegal_number(N) :-
-    is_number(N), \+number(N).
+    \+val_generates_illegal_number(_).
+val_generates_illegal_number(N) :-
+    val(N), \+number(N).
 
 all_le_tests :-
     \+le_test_1(_,_),
@@ -436,34 +460,35 @@ given_two_non_equal_numbers_there_is_a_number_that_is_both_larger_than_the_large
 there_is_a_number_that_is_both_strictly_larger_and_smaller_than_any_given_one(A, X) :-
     le(X, A), le(A, X), A \= X.
 
-all_addition_tests :-
+all_summation_tests :-
     example_1_plus_2_equals_3,
     example_1_plus_2_is_never_equal_to_any_number_other_than_3,
     sum_of_2_non_0_numbers_is_never_less_then_any_of_summands.
 example_1_plus_2_equals_3 :-
-    add(ns(1, _), ns(2, _), ns(3, _)).
+    add(1, 2, 3).
 example_1_plus_2_is_never_equal_to_any_number_other_than_3 :-
     \+example_1_plus_2_is_equal_to_a_number_other_than_3(_).
 example_1_plus_2_is_equal_to_a_number_other_than_3(C) :-
-    add(ns(1, _), ns(2, _), C), C \= ns(3, _).
+    add(1, 2, C), C \= 3.
 sum_of_2_non_0_numbers_is_never_less_then_any_of_summands :-
     \+sum_of_2_non_0_numbers_is_less_then_any_of_summands(_,_,_).
 sum_of_2_non_0_numbers_is_less_then_any_of_summands(A,B,C) :-
     add(A, B, C),
-    A \= ns(0,0),
-    B \= ns(0,0),
+    A \= 0,
+    B \= 0,
     (
         le(C, A);
         le(C, A)
     ).
 
 all_arithmetic_predicates_always_halt :-
-    always_halts(is_number(_)),
-    always_halts(is_succ(_)),
-    always_halts(uni(_, _)),
+    always_halts(val(_)),
+    always_halts(eq(_, _)),
     always_halts(le(_, _)),
-    always_halts(suc(_, _)),
-    always_halts(add(_, _, _)).
+    always_halts(lt(_, _)),
+    always_halts(add(_, _, _)),
+    always_halts(mul(_, _, _)),
+    always_halts(pow(_, _, _)).
 
 % Rules tests
 % TODO: Perform tests for all possible board configurations
