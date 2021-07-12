@@ -387,21 +387,21 @@ eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
 le(A, B) :- ns_le(ns(A, _), ns(B, _)).
 lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
 add(A, B, C) :- ns_sum(ns(A, _), ns(B, _), ns(C, _)).
-mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
-pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
+%mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
+%pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
 
-ns_pow(ns(An, succ(S)), ns(0, 0), ns(1, succ(0))) :-
-    ns_val(ns(An, succ(S))).
-ns_pow(A, B, C) :-
-    ns_suc(Bm1, B) &
-    ns_pow(A, Bm1, Part) &
-    ns_mul(Part, A, C).
-ns_mul(ns(0, 0), B, ns(0, 0)) :-
-    ns_val(B).
-ns_mul(A, B, C) :-
-    ns_suc(Am1, A) &
-    ns_mul(Am1, B, Part) &
-    ns_sum(B, Part, C).
+%ns_pow(ns(An, succ(S)), ns(0, 0), ns(1, succ(0))) :-
+%    ns_val(ns(An, succ(S))).
+%ns_pow(A, B, C) :-
+%    ns_suc(Bm1, B) &
+%    ns_pow(A, Bm1, Part) &
+%    ns_mul(Part, A, C).
+%ns_mul(ns(0, 0), B, ns(0, 0)) :-
+%    ns_val(B).
+%ns_mul(A, B, C) :-
+%    ns_suc(Am1, A) &
+%    ns_mul(Am1, B, Part) &
+%    ns_sum(B, Part, C).
 ns_sum(ns(0, 0), B, B) :-
     ns_val(B).
 ns_sum(A, B, C) :-
@@ -488,8 +488,8 @@ all_arithmetic_predicates_always_halt :-
     always_halts(le(_, _)),
     always_halts(lt(_, _)),
     always_halts(add(_, _, _)),
-    always_halts(mul(_, _, _)),
-    always_halts(pow(_, _, _)).
+   *always_halts(mul(_, _, _)),
+   *always_halts(pow(_, _, _)).
 
 % Rules tests
 % TODO: Perform tests for all possible board configurations
