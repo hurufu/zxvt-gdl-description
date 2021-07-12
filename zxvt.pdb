@@ -65,7 +65,7 @@ init(control(red)).
 % TODO: Number of dice thrown should be equal to the largest player's pawn stack
 legal(random, roll([D])) :-
     true(control(Player)) &
-    roll_d6(N, [D]) & is_ns(N, S) &
+    roll_d6(N, [D]) & ns_val(N, S) &
     true(cell(_, situation(army(of(Player), count(S)), _))).
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     true(control(Player)) &
@@ -229,55 +229,14 @@ stack(PossiblePawnStack) :-
     le(1, PossiblePawnStack) & le(PossiblePawnStack, MaxStack).
 
 neighboring_coordinates(A, B) :-
-    coordinates(A) &
-    coordinates(B) &
+    valid_rc(A) &
+    valid_rc(B) &
     neighboring_coordinates_aux(A, B).
-neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- is_number(R) & is_number(C).
-neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- is_number(R) & s(Lc, Rc).
-neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- is_number(R) & s(Rc, Lc).
-neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Lr, Rr).
-neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- is_number(C) & s(Rr, Lr).
-
-outcome(capture).
-outcome(nothing).
-outcome(minus(N)) :- is_number(N).
-outcome(plus(N)) :- is_number(N).
-
-valid_situation_0(situation(army(of(Player), count(0)), On)) :-
-    valid_situation(situation(nobody, On)) &
-    player(Player).
-valid_situation(situation(Occupation, on(Tile,  Ownership))) :-
-    valid_occupation(Occupation) &
-    valid_tile(Tile) &
-    valid_ownerhip(Ownership).
-
-pct(P, C, T) :- pc(P, C) & valid_tile(T).
-pcq(P, C, Q) :- pc(P, C) & player(Q) & distinct(P, Q).
-pc(P, count(succ(X))) :- player(P) & is_succ(X).
-
-valid_tile(field).
-valid_tile(town).
-valid_tile(garrison).
-valid_tile(fort).
-
-valid_ownerhip(wild).
-valid_ownerhip(owned_by(Player)) :-
-    player(Player).
-valid_occupation(nobody).
-valid_occupation(army(of(Player), count(X))) :-
-    player(Player) &
-    is_succ(X).
-valid_occupation_non_0(nobody).
-valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
-    player(Player) &
-    is_succ(X).
-
-unify_situation(A, A) :-
-    valid_situation(A).
-unify_dice(dice(A), dice(A)) :-
-    roll_d6(_, A).
-count_of_situation(situation(army(Of, count(X)), On), X) :-
-    valid_situation(situation(army(Of, count(X)), On)).
+neighboring_coordinates_aux(rc(R,C), rc(R,C)) :- val(R) & val(C).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- val(R) & s(Lc, Rc).
+neighboring_coordinates_aux(rc(R,Lc), rc(R,Rc)) :- val(R) & s(Rc, Lc).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- val(C) & s(Lr, Rr).
+neighboring_coordinates_aux(rc(Lr,C), rc(Rr,C)) :- val(C) & s(Rr, Lr).
 
 nrules(S, dice([]), S) :-
     valid_situation_0(S).
@@ -329,20 +288,62 @@ rule_b_outcome(capture, Before, After) :-
     unify_situation(Before, situation(army(of(P), Count, on(Tile, _)))) &
     unify_situation(After, situation(army(of(P), Count, on(Tile, owned_by(P))))).
 
+count_of_situation(situation(army(Of, count(X)), On), X) :-
+    valid_situation(situation(army(Of, count(X)), On)).
+
+% Unification predicates
+unify_situation(A, A) :- valid_situation(A).
+unify_die(A, A) :- valid_die(A).
+
+% Validation predicates
+valid_outcome(capture).
+valid_outcome(nothing).
+valid_outcome(minus(N)) :- val(N).
+valid_outcome(plus(N)) :- val(N).
+
+valid_tile(field).
+valid_tile(town).
+valid_tile(garrison).
+valid_tile(fort).
+
+valid_situation_0(situation(army(of(Player), count(0)), On)) :-
+    valid_situation(situation(nobody, On)) &
+    player(Player).
+
+valid_situation(situation(Occupation, on(Tile,  Ownership))) :-
+    valid_occupation(Occupation) &
+    valid_tile(Tile) &
+    valid_ownerhip(Ownership).
+
+valid_ownerhip(wild).
+valid_ownerhip(owned_by(Player)) :-
+    player(Player).
+
+valid_occupation(nobody).
+valid_occupation(army(of(Player), count(X))) :-
+    player(Player) &
+    is_succ(X).
+
+valid_occupation_non_0(nobody).
+valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
+    player(Player) &
+    is_succ(X).
+
 valid_cell(cell(Coordinates, Situation)) :-
-    coordinates(Coordinates) &
+    valid_rc(Coordinates) &
     valid_occupation_non_0(Occupation) &
     unify_situation(Situation, situation(Occupation, _)).
 
-coordinates(rc(Row, Column)) :- row(Row) & col(Column).
+valid_rc(rc(Row, Column)) :-
+    row(Row) &
+    col(Column).
 
-cell_type(wild).
-cell_type(captured_by(Player)) :-
-    player(Player).
-valid_pawn(free).
-valid_pawn(with_pawn(of(Player), number(Number))) :-
-    player(Player) &
-    stack(Number).
+valid_die(1).
+valid_die(2).
+valid_die(3).
+valid_die(4).
+valid_die(5).
+valid_die(6).
 
 % Dice utils
 d6(1). d6(2). d6(3). d6(4). d6(5). d6(6).
