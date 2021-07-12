@@ -74,8 +74,9 @@ legal(Player, move(MovingPawns, from(From), to(To))) :-
 legal(Player, spawn(at(StartPosition))) :-
     true(control(Player)) &
     start_position(Player, StartPosition) &
-    true_for_each_cell_occupation(free).
+    true_for_each_cell(situation(nobody, _)).
 
+% TODO: goal/2 should succeed only once for any player
 goal(random, 0).
 goal(Player, Score) :-
     player_score(Player, Score).
@@ -83,7 +84,7 @@ goal(Player, Score) :-
 % Games ends if all board is captured
 terminal :-
     player(Player) &
-    true_for_each_cell(captured_by(Player)).
+    true_for_each_cell(situation(_, on(_, owned_by(Player)))).
 
 % TODO: Game ends if an opposite side of a board is captured
 %terminal :-
@@ -175,13 +176,13 @@ next(last_roll(D6, Outcome)) :-
 
 % Input utils
 player_score(Player, 100) :-
-    true_for_each_cell(captured_by(Player)).
+    true_for_each_cell(situation(_, on(_, owned_by(Player)))).
 player_score(Player, 50) :-
-    true(cell(_, wild, _)) &
-    true(cell(_, captured_by(Player), _)).
+    true(cell(_, situation(_, on(_, wild)))) &
+    true(cell(_, situation(_, on(_, owned_by(Player))))).
 player_score(Player, 0) :-
     player(Player) &% Fixes unsafe rule warning
-    true_for_each_cell(wild).
+    true_for_each_cell(situation(_, on(_, wild))).
 
 %% TODO: Implement it in GDL
 %alt_player_score(Player, NumberOfCapturedCells) :-
@@ -189,27 +190,14 @@ player_score(Player, 0) :-
 %    findall(I, (I=cell(_, captured_by(Player), _), true(I)), L) &
 %    length(L, NumberOfCapturedCells).
 
-true_for_each_cell(Capture) :-
-    true(cell(rc(1,1), Capture, _)) &
-    true(cell(rc(1,2), Capture, _)) &
-    true(cell(rc(1,3), Capture, _)) &
-    true(cell(rc(2,1), Capture, _)) &
-    true(cell(rc(2,2), Capture, _)) &
-    true(cell(rc(2,3), Capture, _)) &
-    true(cell(rc(3,1), Capture, _)) &
-    true(cell(rc(3,2), Capture, _)) &
-    true(cell(rc(3,3), Capture, _)).
-
-true_for_each_cell_occupation(Occupation) :-
-    true(cell(rc(1,1), _, Occupation)) &
-    true(cell(rc(1,2), _, Occupation)) &
-    true(cell(rc(1,3), _, Occupation)) &
-    true(cell(rc(2,1), _, Occupation)) &
-    true(cell(rc(2,2), _, Occupation)) &
-    true(cell(rc(2,3), _, Occupation)) &
-    true(cell(rc(3,1), _, Occupation)) &
-    true(cell(rc(3,2), _, Occupation)) &
-    true(cell(rc(3,3), _, Occupation)).
+true_for_each_cell(Situation) :-
+    valid_situation(Situation) &
+    ~there_is_a_cell_with_a_distinct_situation(Situation).
+there_is_a_cell_with_a_distinct_situation(Situation) :-
+    true(cell(Rc, S)) &
+    valid_situation(S) &
+    distinct(S, Situation) &
+    valid_rc(Rc).
 
 % TODO: max_pawn_stack/2 should succeed only once
 max_pawn_stack(Player, MaxPawnStack) :-
@@ -365,6 +353,7 @@ type_element(outcome, Element) :- outcome(Element).
 type_element(valid_die, Element) :- valid_die(Element).
 %type_element(num, Element) :- num(Element).
 
+% TODO: Optimize list implementation
 type_nl_00(Tp, []) :- type(Tp).
 type_nl_01(Tp, [H]) :- type_element(Tp, H) & type_nl_00(Tp, []).
 type_nl_02(Tp, [H,T1]) :- type_element(Tp, H) & type_nl_01(Tp, [T1]).
@@ -602,9 +591,9 @@ all_tests_are_passing :-
     all_statements_about_current_configuration_are_valid,
     max_pawn_stack_is_ok_for_the_current_configuration,
     all_legal_moves_for_current_configuration_are_valid,
-   *all_roles_have_a_score_for_current_configuration,
-   *all_scores_are_unambiguous_for_current_configuration,
-   *current_state_is_not_terminal,
+    all_roles_have_a_score_for_current_configuration,
+    all_scores_are_unambiguous_for_current_configuration,
+    current_state_is_not_terminal,
    *all_rules_tests_are_passing,
     all_arithmetics_tests_are_passing,
     all_input_tests_are_passing.
