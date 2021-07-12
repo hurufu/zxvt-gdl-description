@@ -346,50 +346,122 @@ valid_pawn(with_pawn(of(Player), number(Number))) :-
 % Same, but faster
 d6(1). d6(2). d6(3). d6(4). d6(5). d6(6).
 
-is_number(N) :-
-    s(N, _).
+% List utils
+type(d6).
+type(outcome).
+type_element(d6, Element) :- d6(Element).
+type_element(outcome, Element) :- outcome(Element).
 
-is_succ(X) :- sc(_, X).
+type_nl_00(Tp, []) :- type(Tp).
+type_nl_01(Tp, [H]) :- type_element(Tp, H) & type_nl_00(Tp, []).
+type_nl_02(Tp, [H,T1]) :- type_element(Tp, H) & type_nl_01(Tp, [T1]).
+type_nl_03(Tp, [H,T1,T2]) :- type_element(Tp, H) & type_nl_02(Tp, [T1,T2]).
+type_nl_04(Tp, [H,T1,T2,T3]) :- type_element(Tp, H) & type_nl_03(Tp, [T1,T2,T3]).
+type_nl_05(Tp, [H,T1,T2,T3,T4]) :- type_element(Tp, H) & type_nl_04(Tp, [T1,T2,T3,T4]).
+type_nl_06(Tp, [H,T1,T2,T3,T4,T5]) :- type_element(Tp, H) & type_nl_05(Tp, [T1,T2,T3,T4,T5]).
+type_nl(Tp, nl(0, [])) :- type_nl_00(Tp, []).
+type_nl(Tp, nl(1, [H])) :- type_nl_01(Tp, [H]).
+type_nl(Tp, nl(2, [H,T1])) :- type_nl_02(Tp, [H,T1]).
+type_nl(Tp, nl(3, [H,T1,T2])) :- type_nl_03(Tp, [H,T1,T2]).
+type_nl(Tp, nl(4, [H,T1,T2,T3])) :- type_nl_04(Tp, [H,T1,T2,T3]).
+type_nl(Tp, nl(5, [H,T1,T2,T3,T4])) :- type_nl_05(Tp, [H,T1,T2,T3,T4]).
+type_nl(Tp, nl(6, [H,T1,T2,T3,T4,T5])) :- type_nl_06(Tp, [H,T1,T2,T3,T4,T5]).
+%type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
+type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
 
-% A is less then or equal to B
-le(A, B) :- is_number(B) & s(A, X) & le(X, B).
-le(A, A) :- is_number(A).
+nth_element(Tp, 1, L, H) :-
+    type_list_head_tail(Tp, L, H, _).
+nth_element(Tp, N, L, E) :-
+    type_list_head_tail(Tp, L, _, T) &
+    add(ns(1, _), ns(M, _), ns(N, _)) &
+    nth_element(Tp, M, T, E).
 
-% Successor
-s( 0, 1). s( 1, 2). s( 2, 3). s( 3, 4). s( 4, 5). s( 5, 6). s( 6, 7). s( 7, 8). % s( 8, 9). s( 9,10).
-%s(10,11). s(11,12). s(12,13). s(13,14). s(14,15). s(15,16). s(16,17). s(17,18). s(18,19). s(19,20).
-%s(20,21). s(21,22). s(22,23). s(23,24). s(24,25). s(25,26). s(26,27). s(27,28). s(28,29). s(29,30).
-%s(30,31). s(31,32). s(32,33). s(33,34). s(34,35). s(35,36). s(36,37). s(37,38). s(38,39). s(39,40).
-%s(40,41). s(41,42). s(42,43). s(43,44). s(44,45). s(45,46). s(46,47). s(47,48). s(48,49). s(49,50).
-%s(50,51). s(51,52). s(52,53). s(53,54). s(54,55). s(55,56). s(56,57). s(57,58). s(58,59). s(59,60).
-%s(60,61). s(61,62). s(62,63). s(63,64). s(64,65). s(65,66). s(66,67). s(67,68). s(68,69). s(69,70).
-%s(70,71). s(71,72). s(72,73). s(73,74). s(74,75). s(75,76). s(76,77). s(77,78). s(78,79). s(79,80).
-%s(80,81). s(81,82). s(82,83). s(83,84). s(84,85). s(85,86). s(86,87). s(87,88). s(88,89). s(89,90).
-%s(90,91). s(91,92). s(92,93). s(93,94). s(94,95). s(95,96). s(96,97). s(97,98). s(98,99). s(99,100).
+% Arithmetic utils
+is_number(N) :- is_ns(ns(N, _)).
+is_succ(S) :- is_ns(ns(_, S)).
 
-% Alternative succesors (probably faster)
-sc( 0, 0).
-sc( 1, succ(0)).
-sc( 2, succ(succ(0))).
-sc( 3, succ(succ(succ(0)))).
-sc( 4, succ(succ(succ(succ(0))))).
-sc( 5, succ(succ(succ(succ(succ(0)))))).
-sc( 6, succ(succ(succ(succ(succ(succ(0))))))).
-sc( 7, succ(succ(succ(succ(succ(succ(succ(0)))))))).
-sc( 8, succ(succ(succ(succ(succ(succ(succ(succ(0))))))))).
-sc( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
-sc(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
+le(A, A) :- is_ns(A).
+le(A, B) :-
+    suc(X, B) &
+    le(A, X).
+uni(A, A) :- is_ns(A).
+suc(A, B) :-
+    uni(A, ns(_, As)) &
+    uni(B, ns(_, succ(As))).
+add(ns(0,0), B, B) :- is_ns(B).
+add(A, B, C) :-
+    suc(Am1, A) &
+    add(Am1, B, X) &
+    suc(X, C) &
+    is_ns(B).
 
-uni(A, succ(A)) :- is_succ(A).
+is_ns(ns( 0, 0)).
+is_ns(ns( 1, succ(0))).
+is_ns(ns( 2, succ(succ(0)))).
+is_ns(ns( 3, succ(succ(succ(0))))).
+is_ns(ns( 4, succ(succ(succ(succ(0)))))).
+is_ns(ns( 5, succ(succ(succ(succ(succ(0))))))).
+is_ns(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
+is_ns(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
+is_ns(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
+is_ns(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
+is_ns(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
 
-add(0, B, B) :- is_succ(B).
-add(A, B, succ(C)) :-
-    uni(Am1, A) &
-    add(Am1, B, C) &
-    is_succ(B) &
-    is_succ(C).
+% Prolog code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Tests
+% Arithmetic tests
+all_arithmetics_tests_are_passing :-
+    all_arithmetic_predicates_always_halt,
+    all_numbers_are_legal,
+    all_le_tests,
+    all_addition_tests.
+
+all_numbers_are_legal :-
+    \+is_number_generates_illegal_number(_).
+is_number_generates_illegal_number(N) :-
+    is_number(N), \+number(N).
+
+all_le_tests :-
+    \+le_test_1(_,_),
+    \+given_two_non_equal_numbers_there_is_a_number_that_is_both_larger_than_the_largest_one_and_smaller_than_the_smallest_one(_,_,_),
+    \+there_is_a_number_that_is_both_strictly_larger_and_smaller_than_any_given_one(_,_).
+le_test_1(A, B) :-
+    le(A, B), le(B, A), A \= B.
+given_two_non_equal_numbers_there_is_a_number_that_is_both_larger_than_the_largest_one_and_smaller_than_the_smallest_one(A, B, X) :-
+    le(A, B), A \= B, le(X, A), le(B, X).
+there_is_a_number_that_is_both_strictly_larger_and_smaller_than_any_given_one(A, X) :-
+    le(X, A), le(A, X), A \= X.
+
+all_addition_tests :-
+    example_1_plus_2_equals_3,
+    example_1_plus_2_is_never_equal_to_any_number_other_than_3,
+    sum_of_2_non_0_numbers_is_never_less_then_any_of_summands.
+example_1_plus_2_equals_3 :-
+    add(ns(1, _), ns(2, _), ns(3, _)).
+example_1_plus_2_is_never_equal_to_any_number_other_than_3 :-
+    \+example_1_plus_2_is_equal_to_a_number_other_than_3(_).
+example_1_plus_2_is_equal_to_a_number_other_than_3(C) :-
+    add(ns(1, _), ns(2, _), C), C \= ns(3, _).
+sum_of_2_non_0_numbers_is_never_less_then_any_of_summands :-
+    \+sum_of_2_non_0_numbers_is_less_then_any_of_summands(_,_,_).
+sum_of_2_non_0_numbers_is_less_then_any_of_summands(A,B,C) :-
+    add(A, B, C),
+    A \= ns(0,0),
+    B \= ns(0,0),
+    (
+        le(C, A);
+        le(C, A)
+    ).
+
+all_arithmetic_predicates_always_halt :-
+    always_halts(is_number(_)),
+    always_halts(is_succ(_)),
+    always_halts(uni(_, _)),
+    always_halts(le(_, _)),
+    always_halts(suc(_, _)),
+    always_halts(add(_, _, _)).
+
+% Rules tests
 % TODO: Perform tests for all possible board configurations
 % TODO: All players have at least 1 legal move in current non-terminal state
 all_statements_about_current_configuration_are_valid :-
@@ -427,10 +499,6 @@ pawn_0 :-
 
 current_state_is_not_terminal :-
     \+terminal.
-
-all_arithmetics_tests_are_passing :-
-    add(succ(0), succ(succ(0)), succ(succ(succ(0)))),
-    \+add(succ(0), succ(succ(0)), succ(succ(0))).
 
 all_rules_tests_are_passing :-
     rules_should_terminate_if_count_is_set_but_dice_list_is_not(_, _),
