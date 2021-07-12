@@ -42,7 +42,7 @@ input(random, roll(L)) :-
 % Any player can move at least 1 pawn to any neighboring cell
 input(Player, move(NumberOfPawns, from(From), to(To))) :-
     player(Player) &
-    lt(0, NumberOfPawns) &
+    le(1, NumberOfPawns) &
     neighboring_rc(From, To).
 % Any player can spawn pawns only at a starting position
 input(Player, spawn(at(StartPosition))) :-
@@ -50,10 +50,10 @@ input(Player, spawn(at(StartPosition))) :-
 
 base(Cell) :- valid_cell(Cell).
 base(control(R)) :- player(R).
-base(last_roll(D6, Outcome)) :-
+base(last_roll(D, Outcome)) :-
     rich_ui(last_roll) &
-    d6(D6) &
-    outcome(Outcome).
+    valid_die(D) &
+    valid_outcome(Outcome).
 
 init(cell(StartPosition, situation(army(of(Player), count(succ(0))), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
@@ -286,8 +286,8 @@ unify_die(A, A) :- valid_die(A).
 % Validation predicates
 valid_outcome(capture).
 valid_outcome(nothing).
-valid_outcome(minus(N)) :- num(N).
-valid_outcome(plus(N)) :- num(N).
+valid_outcome(minus(N)) :- le(1, N).
+valid_outcome(plus(N)) :- le(1, N).
 
 valid_tile(field).
 valid_tile(town).
@@ -310,12 +310,12 @@ valid_ownerhip(owned_by(Player)) :-
 valid_occupation(nobody).
 valid_occupation(army(of(Player), count(X))) :-
     player(Player) &
-    is_succ(X).
+    num(X).
 
 valid_occupation_non_0(nobody).
 valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
     player(Player) &
-    is_succ(X).
+    num(X).
 
 valid_cell(cell(Coordinates, Situation)) :-
     valid_rc(Coordinates) &
@@ -384,7 +384,7 @@ nth_element(Tp, N, L, E) :-
 num(A) :- ns_val(ns(A, _)).
 eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
 le(A, B) :- ns_le(ns(A, _), ns(B, _)).
-lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
+%lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
 add(A, B, C) :- ns_add(ns(A, _), ns(B, _), ns(C, _)).
 %mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
 %pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
@@ -419,9 +419,9 @@ ns_le(A, B) :-
     ns_val(A).
 ns_eq(A, A) :-
     ns_val(A).
-ns_lt(A, B) :-
-    ns_le(A, B) &
-    distinct(A, B).
+%ns_lt(A, B) :-
+%    ns_le(A, B) &
+%    distinct(A, B).
 
 ns_val(ns( 0, 0)).
 ns_val(ns( 1, succ(0))).
@@ -485,7 +485,7 @@ all_arithmetic_predicates_always_halt :-
     always_halts(num(_)),
     always_halts(eq(_, _)),
     always_halts(le(_, _)),
-    always_halts(lt(_, _)),
+   *always_halts(lt(_, _)),
     always_halts(add(_, _, _)),
    *always_halts(mul(_, _, _)),
    *always_halts(pow(_, _, _)).
