@@ -9,8 +9,9 @@
 :- op(1000, xfy, '&').
 :- op(1100, xfy, '|').
 :- op(900, fy, '~').
-:- op(920,fy, '*').
-:- op(920,fy, '$').
+:- op(950, fy, '*').
+:- op(900, fy, '$').
+:- op(900, fy, '$-').
 :- initialization(all_tests_are_passing).
 
 % Configuration
@@ -475,9 +476,15 @@ true(X) :- init(X).
 '~'(Rhs) :-
     \+ call(Rhs).
 '*'(_).
+
+'$_error_stream'(user_error).
 '$'(Goal) :-
-    ErrorStream = user_error,
+    '$_error_stream'(ErrorStream),
     portray_clause(ErrorStream, call:Goal),
+    $-Goal,
+    portray_clause(ErrorStream, exit:Goal).
+'$-'(Goal) :-
+    '$_error_stream'(ErrorStream),
     catch(
         Goal,
         Exception,
@@ -485,8 +492,7 @@ true(X) :- init(X).
             portray_clause(ErrorStream, excp:Exception:Goal),
             throw(Exception)
         )
-    ),
-    portray_clause(ErrorStream, exit:Goal).
+    ).
 
 % FIXME: It looks like distinct/2 should behave like dif/2
 distinct(A, B) :- A \= B.
