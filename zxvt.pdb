@@ -13,6 +13,7 @@
 :- op(900, fy, '$').
 :- op(900, fy, '$-').
 :- op(900, fy, '?').
+:- op(1050, xfy, '~>').
 :- initialization(all_tests_are_passing).
 
 % Configuration
@@ -457,7 +458,7 @@ all_arithmetics_tests_are_passing :-
 all_numbers_are_legal :-
     \+val_generates_illegal_number(_).
 val_generates_illegal_number(N) :-
-    num(N), \+number(N).
+    num(N), \+integer(N).
 
 all_le_tests :-
     \+le_test_1(_,_),
@@ -545,7 +546,7 @@ there_is_a_discrepancy_for_max_pawn_stack_predicate_with_a_reference_implementat
 
 reference_max_pawn_stack(Player, Max) :-
     findall(N, true(cell(_, situation(army(of(Player), count(N)), _))), Army) &
-    max_list(Army, Max).
+    max_list_element(Army, Max).
 
 all_legal_moves_for_current_configuration_are_valid :-
     \+invalid_but_legal_move_for_current_configuration_exists(_, _).
@@ -611,6 +612,14 @@ always_halts(Goal) :-
 doesnt_halt(Goal) :-
     call(Goal), false.
 
+max_list_element([Max], Max).
+max_list_element([H|T], Max) :-
+    max_list_element(T, PrevMax),
+    max(H, PrevMax, Max).
+
+max(A, B, A) :- A > B.
+max(A, B, B) :- B >= A.
+
 % Assert that current configuration is initial
 true(X) :- init(X).
 
@@ -622,33 +631,32 @@ true(X) :- init(X).
     \+ call(Rhs).
 '*'(_).
 
-debug_stream(user_error).
 '$'(Goal) :-
-    debug_stream(IoStream),
-    (
-        portray_clause(IoStream, call:Goal) ->
-            $-Goal *->
-                portray_clause(IoStream, exit:Goal)
-    ).
+    portray_clause(call:Goal) ->
+        $-Goal ~>
+            portray_clause(exit:Goal).
+
 '$-'(Goal) :-
-    debug_stream(IoStream),
     catch(
         Goal,
         Exception,
         (
-            portray_clause(IoStream, excp:Exception:Goal) ->
+            portray_clause(excp:Exception:Goal) ->
                 throw(Exception)
         )
     ).
+
 '?'(Goal) :-
-    write_to_codes(Codes, Goal),
+    call(Goal) ~>
+        portray_clause(fail:Goal) ->
+            false.
+
+% FIXME: Don't call Cond twice
+'~>'(Cond, IfFailed) :-
+    call(Cond);
     (
-        call(Goal) *-> true;
-        (
-            debug_stream(IoStream) ->
-                format(IoStream, "call : ~s~n", [Codes]) ->
-                    portray_clause(IoStream, fail:Goal)
-        )
+        call(Cond) -> true;
+            call(IfFailed)
     ).
 
 % FIXME: It looks like distinct/2 should behave like dif/2
