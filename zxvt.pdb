@@ -609,7 +609,18 @@ rules_should_terminate_if_dice_list_is_set_but_count_is_not(L0, L1) :-
 all_rules(Player-On, Dice, AllPossibleOutcomes) :-
     findall(After, nrules(situation(army(of(Player), count(_)), On), dice(Dice), After), AllPossibleOutcomes).
 
+there_is_a_strong_correspondence_between_players_and_spawns :-
+    \+there_is_a_starting_position_without_a_player(_),
+    \+there_is_a_player_without_starting_position(_).
+there_is_a_starting_position_without_a_player(Spawn) :-
+    start_position(P, Spawn),
+    \+player(P).
+there_is_a_player_without_starting_position(P) :-
+    player(P),
+    \+start_position(P, _).
+
 all_tests_are_passing :-
+    there_is_a_strong_correspondence_between_players_and_spawns,
     all_statements_about_current_configuration_are_valid,
     max_possible_pawn_stack_is_ok_for_the_current_configuration,
     all_legal_moves_for_current_configuration_are_valid,
