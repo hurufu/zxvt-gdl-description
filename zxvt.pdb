@@ -652,11 +652,9 @@ true(X) :- init(X).
 
 % FIXME: Don't call Cond twice
 '~>'(Cond, IfFailed) :-
-    call(Cond);
-    (
-        call(Cond) -> true;
-            call(IfFailed)
-    ).
+    \+call(Cond) ->
+        call(IfFailed);
+        call(Cond).
 
 % FIXME: It looks like distinct/2 should behave like dif/2
 distinct(A, B) :- A \= B.
