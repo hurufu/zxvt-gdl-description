@@ -85,8 +85,7 @@ goal(Player, Score) :-
 
 % Games ends if all board is captured
 terminal :-
-    player(Player) &
-    true_for_each_cell(situation(_, on(_, owned_by(Player)))).
+    true_for_each_cell(situation(_, on(_, owned_by(_)))).
 
 % TODO: Game ends if an opposite side of a board is captured
 %terminal :-
