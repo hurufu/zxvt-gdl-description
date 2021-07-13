@@ -278,17 +278,31 @@ situation_after_single_throw(Before, die(D), After) :-
 
 rule_b_outcome(minus(N), Before, After) :-
     unify_situation(Before, situation(army(Of, count(B)), On)) &
-    add(ns(N, _), ns(_, A), ns(_, B)) &
+    le(1, N) &
+    add(N, A, B) &
+    le(1, A) &
     unify_situation(After, situation(army(Of, count(A)), On)).
+rule_b_outcome(minus(N), Before, situation(nobody, On)) :-
+    unify_situation(Before, situation(army(_, count(B)), On)) &
+    le(1, N) &
+    add(N, A, B) &
+    eq(0, A).
 rule_b_outcome(plus(N), Before, After) :-
     unify_situation(Before, situation(army(Of, count(B)), On)) &
-    add(ns(N, _), ns(_, B), ns(_, A)) &
+    le(1, N) &
+    add(N, B, A) &
     unify_situation(After, situation(army(Of, count(A)), On)).
 rule_b_outcome(nothing, Before, After) :-
     unify_situation(Before, After).
 rule_b_outcome(capture, Before, After) :-
-    unify_situation(Before, situation(army(of(P), Count, on(Tile, _)))) &
-    unify_situation(After, situation(army(of(P), Count, on(Tile, owned_by(P))))).
+    (
+        unify_situation(Before, situation(army(of(P), Count), on(Tile, wild))) |
+        (
+            unify_situation(Before, situation(army(of(P), Count), on(Tile, owned_by(Q)))) &
+            distinct(P, Q)
+        )
+    ) &
+    unify_situation(After, situation(army(of(P), Count), on(Tile, owned_by(P)))).
 
 count_of_situation(situation(army(Of, count(X)), On), X) :-
     valid_situation(situation(army(Of, count(X)), On)).
