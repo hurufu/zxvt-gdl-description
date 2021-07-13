@@ -535,6 +535,42 @@ all_arithmetic_predicates_always_halt :-
    *always_halts(mul(_, _, _)),
    *always_halts(pow(_, _, _)).
 
+% Configuration tests
+all_configuration_tests_are_passing :-
+    there_is_a_strong_correspondence_between_players_and_spawns,
+    there_is_a_rule_for_each_die,
+    there_is_a_die_for_each_rule,
+    all_rules_are_representable_using_valid_list.
+
+there_is_a_strong_correspondence_between_players_and_spawns :-
+    \+there_is_a_starting_position_without_a_player(_),
+    \+there_is_a_player_without_starting_position(_).
+there_is_a_starting_position_without_a_player(Spawn) :-
+    start_position(P, Spawn),
+    \+player(P).
+there_is_a_player_without_starting_position(P) :-
+    player(P),
+    \+start_position(P, _).
+
+there_is_a_rule_for_each_die :-
+    \+there_is_a_die_without_associated_rule(_).
+there_is_a_die_for_each_rule :-
+    \+there_is_a_rule_without_associated_die(_, _).
+there_is_a_die_without_associated_rule(D) :-
+    valid_die(D),
+    rules(_, _, L),
+    \+nth_element(valid_outcome, D, L, _).
+there_is_a_rule_without_associated_die(rule(Ownership, Tile, L), nth(D, O)) :-
+    rules(Ownership, Tile, L),
+    nth_element(valid_outcome, D, L, O),
+    \+valid_die(D).
+
+all_rules_are_representable_using_valid_list :-
+    \+there_is_a_rule_which_isnt_representable_using_valid_list(_).
+there_is_a_rule_which_isnt_representable_using_valid_list(rule(Ownership, Tile, L)) :-
+    rules(Ownership, Tile, L),
+    \+type_nl(valid_outcome, nl(_, L)).
+
 % Input tests
 all_input_tests_are_passing :-
     no_player_can_move_0_pawns,
@@ -623,18 +659,8 @@ rules_should_terminate_if_dice_list_is_set_but_count_is_not(L0, L1) :-
 all_rules(Player-On, Dice, AllPossibleOutcomes) :-
     findall(After, nrules(situation(army(of(Player), count(_)), On), dice(Dice), After), AllPossibleOutcomes).
 
-there_is_a_strong_correspondence_between_players_and_spawns :-
-    \+there_is_a_starting_position_without_a_player(_),
-    \+there_is_a_player_without_starting_position(_).
-there_is_a_starting_position_without_a_player(Spawn) :-
-    start_position(P, Spawn),
-    \+player(P).
-there_is_a_player_without_starting_position(P) :-
-    player(P),
-    \+start_position(P, _).
-
 all_tests_are_passing :-
-    there_is_a_strong_correspondence_between_players_and_spawns,
+    all_configuration_tests_are_passing,
     all_statements_about_current_configuration_are_valid,
     max_possible_pawn_stack_is_ok_for_the_current_configuration,
     all_legal_moves_for_current_configuration_are_valid,
