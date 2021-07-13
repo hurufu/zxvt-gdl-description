@@ -4,6 +4,8 @@
 % No buildings
 % Pawns can't be stacked and only single pawn can be placed on the board
 % Goal is to capture the whole board
+% Each player is movin simultaneously with a random role
+% TODO: Consider adding different game tactic, where each roles moves separately
 
 % WARNING: Remove to get valid program in GDL-II (HRF)
 :- op(1000, xfy, '&').
@@ -16,24 +18,26 @@
 :- op(1050, xfy, '~>').
 :- initialization(all_tests_are_passing).
 
-% Configuration
+% Configuration %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 max_row(3).
 max_col(3).
 player(red).
 start_position(red, rc(1,1)).
 rich_ui(no_rich_ui).%Avoid exception if all UI enrichments are disabled
 rich_ui(last_roll).
-rules(own,     any,      [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
+rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
 rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
-rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
-rules(wild,    garrison, [minus(1),minus(1),minus(1),nothing ,capture,plus(1)]).
-rules(wild,    fort,     [minus(1),minus(1),minus(1),capture ,plus(1),plus(1)]).
+%rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
+%rules(wild,    garrison, [minus(1),minus(1),minus(1),nothing ,capture,plus(1)]).
+%rules(wild,    fort,     [minus(1),minus(1),minus(1),capture ,plus(1),plus(1)]).
 rules(foreign, field,    [minus(1),minus(1),nothing ,nothing ,capture,capture]).
 rules(foreign, town,     [minus(1),minus(1),nothing ,nothing ,nothing,capture]).
 rules(foreign, garrison, [minus(1),minus(1),minus(1),nothing ,capture,capture]).
 rules(foreign, fort,     [minus(1),minus(1),minus(1),minus(1),nothing,capture]).
 
-% GDL
+% GDL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 role(random).
 role(red).
 
@@ -64,26 +68,47 @@ init(Cell) :-
     distinct(StartPosition, Rc).
 init(control(red)).
 
+% Random player may throw only as many dice as the largest pawn stack of the current player
+% TODO: If all possible moves end-up on the already captured cell, ie no dice roll is needed, then random shouldn't roll dice
 legal(random, roll(Dice)) :-
     true(control(Player)) &
-    max_pawn_stack(Player, Max) &
+    max_possible_pawn_stack(Player, Max) &
     valid_dice(Max, Dice).
+% Player can move to a neighboring own or not occupied cell with all or less pawns
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     true(control(Player)) &
     true(cell(From, situation(army(of(Player), count(StationaryPawns)), _))) &
     le(MovingPawns, StationaryPawns) &
-    valid_move(move(MovingPawns, from(From), to(To))).
+    valid_move(move(MovingPawns, from(From), to(To))) &
+    (
+        true(cell(To, situation(army(of(Player), _), _))) |
+        true(cell(To, situation(nobody, _)))
+    ),
+    distinct(From, To).
+% It's not legal to move only part of a stack to the same cell as currently standing on
+legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
+    true(control(Player)) &
+    true(cell(FromAndTo, situation(army(of(Player), count(MovingPawns)), _))) &
+    valid_move(move(MovingPawns, from(FromAndTo), to(FromAndTo))).
+% A new pawn can be spawned only if current player doesn't have any pawn left
+% and it should be the only choice for a player in such situation
 legal(Player, spawn(at(StartPosition))) :-
     true(control(Player)) &
     start_position(Player, StartPosition) &
-    true_for_each_cell(situation(nobody, _)).
+    (
+        true_for_each_cell(situation(nobody, _)) |
+        (
+            true_for_each_cell(situation(army(of(Oponent), _), _)) &
+            distinct(Player, Oponent)
+        )
+    ).
 
 % TODO: goal/2 should succeed only once for any player
 goal(random, 0).
 goal(Player, Score) :-
     player_score(Player, Score).
 
-% Games ends if all board is captured
+% Games ends if all board is captured, ie there are no wild cells left
 terminal :-
     true_for_each_cell(situation(_, on(_, owned_by(_)))).
 
@@ -92,88 +117,67 @@ terminal :-
 %    player(red) &
 %    cell(rc(3,3), captured_by(red), _).
 
-next(cell(FromAndTo, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
-    does(random, roll([D])) &
-    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
-    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_outcome(Player, D, OldCapture, capture).
+% If a player choses to recapture the cell that he is already standing on, then just proceed by the rules
+next(cell(FromAndTo, NewSituation)) :-
+    does(random, roll(D)) &
+    does(_, move(_, from(FromAndTo), to(FromAndTo))) &
+    true(cell(FromAndTo, OldSituation)) &
+    nrules(OldSituation, D, NewSituation).
 
-next(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) :-
-    does(random, roll([D])) &
-    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
-    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_outcome(Player, D, OldCapture, nothing).
-
-next(cell(FromAndTo, OldCapture, free)) :-
-    does(random, roll([D])) &
-    does(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) &
-    true(cell(FromAndTo, OldCapture, with_pawn(of(Player), number(MovingPawns)))) &
-    rule_outcome(Player, D, OldCapture, minusone).
-
-% Destination is captured by player according to rule book and all pawns appear there
-next(cell(To, captured_by(Player), with_pawn(of(Player), number(MovingPawns)))) :-
-    player(Player) &
-    does(random, roll([D])) &
+% If a cell already contains a players pawn, then a sum must be calculated
+next(cell(To, NewSituation)) :-
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
-    true(cell(To, Capture, _)) &
-    rule_outcome(Player, D, Capture, capture).
+    true(cell(To, situation(army(of(Player), count(StationaryPawns)), On))) &
+    add(StationaryPawns, MovingPawns, NewPawns) &
+    nrules(situation(army(of(Player), count(NewPawns)), On), NewSituation).
 
-next(cell(To, Capture, with_pawn(of(Player), number(MovingPawns)))) :-
-    player(Player) &
-    does(random, roll([D])) &
+% Destination is captured by player according to rule book and all pawns appear there, if a cell doesn't have any pawn
+next(cell(To, NewSituation)) :-
+    does(random, roll(D)) &
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
-    true(cell(To, Capture, _)) &
-    rule_outcome(Player, D, Capture, nothing).
+    true(cell(To, situation(nobody, On))) &
+    nrules(situation(army(of(Player), count(MovingPawns)), On), D, NewSituation).
 
-next(cell(To, Capture, free)) :-
-    player(Player) &
-    does(random, roll([D])) &
-    does(Player, move(_, from(From), to(To))) &
-    true(cell(To, Capture, _)) &
+% Origin retains its capture state and moved pawns are removed
+next(cell(From, NewSituation)) :-
+    does(_, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
-    rule_outcome(Player, D, Capture, minusone).
-
-% Origin retains its capture state and ALL pawns are removed
-next(cell(From, OldCapture, free)) :-
-    player(Player) &
-    does(random, _) &
-    does(Player, move(_, from(From), to(To))) &
-    distinct(From, To) &
-    true(cell(From, OldCapture, _)).
+    true(cell(From, situation(army(Of, count(OldPawns)), On))) &
+    add(NewPawns, MovingPawns, OldPawns) &
+    unify_situation(NewSituation, situation(army(Of, count(NewPawns)), On)).
 
 % All other cells should retains their respective state
-next(cell(Rc, OldCapture, OldPawnState)) :-
-    player(Player) &
-    does(random, _) &
-    does(Player, move(_, from(From), to(To))) &
-    true(cell(Rc, OldCapture, OldPawnState)) &
+next(cell(Rc, Situation)) :-
+    does(_, move(_, from(From), to(To))) &
+    true(cell(Rc, Situation)) &
     distinct(Rc, From) &
     distinct(Rc, To).
 
 % All other cells should retains their respective state
-next(cell(Rc, OldCapture, OldPawnState)) :-
+next(cell(Rc, Situation)) :-
     does(_, spawn(at(Spawn))) &
-    true(cell(Rc, OldCapture, OldPawnState)) &
+    true(cell(Rc, Situation)) &
     distinct(Rc, Spawn).
 
-next(cell(Spawn, OldCapture, with_pawn(of(Player), number(1)))) :-
+next(cell(Spawn, situation(army(of(Player), count(NewCount)), On))) :-
     does(Player, spawn(at(Spawn))) &
-    true(cell(Spawn, OldCapture, _)).
+    true(cell(Spawn, situation(army(of(Player), count(OldCount)), On))) &
+    add(1, OldCount, NewCount).
 
-% There is no transfer of control
+next(cell(Spawn, situation(army(of(Player), count(1)), On))) :-
+    does(Player, spawn(at(Spawn))) &
+    true(cell(Spawn, situation(nobody, On))).
+
+% TODO: Implement transfer of control
 next(control(Player)) :-
-    player(Player) &
     true(control(Player)).
 
-next(last_roll(D6, Outcome)) :-
+% TODO: Add outcome to the last_roll state
+next(last_roll(Dice)) :-
     rich_ui(last_roll) &
-    player(Player) &
-    does(random, roll([D6])) &
-    does(Player, move(_, from(_), to(To))) &
-    true(cell(To, Capture, _)) &
-    rule_outcome(Player, D6, Capture, Outcome).
+    does(random, roll(Dice)).
 
 % Input utils
 player_score(Player, 100) :-
@@ -200,10 +204,35 @@ there_is_a_cell_with_a_distinct_situation(Situation) :-
     distinct(S, Situation) &
     valid_rc(Rc).
 
+% TODO: max_possible_pawn_stack/2 should succeed only once
+max_possible_pawn_stack(Player, MaxPossiblePawnStack) :-
+    possible_pawn_stack(Player, MaxPossiblePawnStack) &
+    ~there_are_possible_stacks_larger_than_the_given_one(Player, MaxPossiblePawnStack).
+max_possible_pawn_stack(Player, 0) :-
+    player(Player) &
+    ~there_is_a_cell_occupied_by_player(Player).
+there_are_possible_stacks_larger_than_the_given_one(Player, MaxPossiblePawnStack) :-
+    player(Player) &
+    lt(MaxPossiblePawnStack, N) &
+    possible_pawn_stack(Player, N).
+possible_pawn_stack(Player, PossiblePawnStack) :-
+    true(cell(From, situation(army(of(Player), count(M)), _))) &
+    valid_move(move(M, from(From), to(To))) &
+    distinct(From, To) &
+    true(cell(To, situation(army(of(Player), count(N)), _))) &
+    add(M, N, PossiblePawnStack).
+possible_pawn_stack(Player, PossiblePawnStack) :-
+    true(cell(_, situation(army(of(Player), count(PossiblePawnStack)), _))).
+
 % TODO: max_pawn_stack/2 should succeed only once
 max_pawn_stack(Player, MaxPawnStack) :-
     true(cell(_, situation(army(of(Player), count(MaxPawnStack)), _))) &
     ~there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack).
+max_pawn_stack(Player, 0) :-
+    player(Player) &
+    ~there_is_a_cell_occupied_by_player(Player).
+there_is_a_cell_occupied_by_player(Player) :-
+    true(cell(_, situation(army(of(Player), _), _))).
 there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack) :-
     lt(MaxPawnStack, N) &
     true(cell(_, situation(army(of(Player), count(N)), _))).
@@ -238,21 +267,23 @@ nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situat
 nrules_outcome(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)) :-
     nrules(situation(army(OfBefore, count(succ(B))), OnBefore), Roll, situation(army(OfAfter, count(succ(A))), OnAfter)).
 
-
-rules(S, L) :-
-    unify_situation(S, situation(army(of(P), _, on(_, owned_by(P))))) &
-    rules(own, any, L).
-rules(S, L) :-
-    unify_situation(S, situation(army(of(_), _, on(Tile, wild       )))) &
+situation_rules(S, L) :-
+    unify_situation(S, situation(army(of(P), count(X)), on(Tile, owned_by(P)))) &
+    distinct(X, 0) &
+    rules(own, Tile, L).
+situation_rules(S, L) :-
+    unify_situation(S, situation(army(of(_), count(X)), on(Tile, wild))) &
+    distinct(X, 0) &
     rules(wild, Tile, L).
-rules(S, L) :-
-    unify_situation(S, situation(army(of(P), _, on(Tile, owned_by(Q))))) &
+situation_rules(S, L) :-
+    unify_situation(S, situation(army(of(P), count(X)), on(Tile, owned_by(Q)))) &
+    distinct(X, 0) &
     distinct(P, Q) &
     rules(foreign, Tile, L).
 
-rules_(Before, die(D), After) :-
-    rule_book(Before, L) &
-    nth_element(outcome, D, L, Outcome) &
+situation_after_single_throw(Before, die(D), After) :-
+    situation_rules(Before, L) &
+    nth_element(valid_outcome, D, L, Outcome) &
     rule_b_outcome(Outcome, Before, After).
 
 rule_b_outcome(minus(N), Before, After) :-
@@ -343,14 +374,14 @@ valid_move(move(NumberOfPawns, from(From), to(To))) :-
     neighboring_rc(From, To).
 
 % Dice utils
-head_tail_of_dice(H, T, dice(L)) :- type_list_head_tail(d6, L, H, T).
+head_tail_of_dice(H, T, dice(L)) :- type_list_head_tail(valid_die, L, H, T).
 counted_dice(dice(L), N) :- type_nl(valid_die, nl(N, L)).
 
 % List utils
-type(outcome).
+type(valid_outcome).
 type(valid_die).
 %type(num).
-type_element(outcome, Element) :- outcome(Element).
+type_element(valid_outcome, Element) :- valid_outcome(Element).
 type_element(valid_die, Element) :- valid_die(Element).
 %type_element(num, Element) :- num(Element).
 
