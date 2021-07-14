@@ -695,6 +695,12 @@ max_number(A, B, B) :- B >= A.
 % Assert that current configuration is initial
 true(X) :- init(X).
 
+log_term(Prefix, Term) :-
+    write(Prefix) -> write(' : ') -> write(Term) -> nl.
+log_term_excpt(Goal, Exception) :-
+    log_term(excp, Goal) ->
+        write('\t') -> write(Exception) -> nl.
+
 '&'(Lhs, Rhs) :-
     call(Lhs), call(Rhs).
 '|'(Lhs, Rhs) :-
@@ -704,24 +710,23 @@ true(X) :- init(X).
 '*'(_).
 
 '$'(Goal) :-
-    write('call : ') -> write(Goal) -> nl ->
+    log_term(call, Goal) ->
         $-Goal,
-        write('exit : ') -> write(Goal) -> nl.
+        log_term(exit, Goal).
 
 '$-'(Goal) :-
     catch(
         Goal,
         Exception,
         (
-            write('excp : ') -> write(Goal) -> nl ->
-                write('\t') -> write(Exception) -> nl ->
-                    throw(Exception)
+            log_term_excp(Goal, Exception) ->
+                throw(Exception)
         )
     ).
 
 '?'(Goal) :-
     call(Goal) ~>
-        write('fail : ') -> write(Goal) -> nl ->
+        log_term(fail, Goal) ->
             false.
 
 % Operator 'unless'
