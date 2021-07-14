@@ -24,7 +24,8 @@ max_row(3).
 max_col(3).
 player(red).
 start_position(red, rc(1,1)).
-rich_ui(no_rich_ui).%Avoid exception if all UI enrichments are disabled
+%Avoid exception if all UI enrichments are disabled
+rich_ui(no_rich_ui).
 rich_ui(last_roll).
 rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
 rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
@@ -186,7 +187,7 @@ player_score(Player, 50) :-
     true(cell(_, situation(_, on(_, wild)))) &
     true(cell(_, situation(_, on(_, owned_by(Player))))).
 player_score(Player, 0) :-
-    player(Player) &% Fixes unsafe rule warning
+    player(Player) &
     true_for_each_cell(situation(_, on(_, wild))).
 
 %% TODO: Implement it in GDL
@@ -615,7 +616,7 @@ there_is_a_discrepancy_for_max_possible_pawn_stack_predicate_with_a_reference_im
     MaxPawnStack \= ReferenceMaxPawnStack.
 
 reference_max_possible_pawn_stack(Player, Max) :-
-    findall(N, possible_pawn_stack(Player, N), Army) &
+    findall(N, possible_pawn_stack(Player, N), Army),
     max_list_element(Army, Max).
 
 all_legal_moves_for_current_configuration_are_valid :-
@@ -686,10 +687,10 @@ doesnt_halt(Goal) :-
 max_list_element([Max], Max).
 max_list_element([H|T], Max) :-
     max_list_element(T, PrevMax),
-    max(H, PrevMax, Max).
+    max_number(H, PrevMax, Max).
 
-max(A, B, A) :- A > B.
-max(A, B, B) :- B >= A.
+max_number(A, B, A) :- A > B.
+max_number(A, B, B) :- B >= A.
 
 % Assert that current configuration is initial
 true(X) :- init(X).
@@ -703,25 +704,27 @@ true(X) :- init(X).
 '*'(_).
 
 '$'(Goal) :-
-    portray_clause(call:Goal) ->
-        $-Goal ~>
-            portray_clause(exit:Goal).
+    write('call : ') -> write(Goal) -> nl ->
+        $-Goal,
+        write('exit : ') -> write(Goal) -> nl.
 
 '$-'(Goal) :-
     catch(
         Goal,
         Exception,
         (
-            portray_clause(excp:Exception:Goal) ->
-                throw(Exception)
+            write('excp : ') -> write(Goal) -> nl ->
+                write('\t') -> write(Exception) -> nl ->
+                    throw(Exception)
         )
     ).
 
 '?'(Goal) :-
     call(Goal) ~>
-        portray_clause(fail:Goal) ->
+        write('fail : ') -> write(Goal) -> nl ->
             false.
 
+% Operator 'unless'
 % FIXME: Don't call Cond twice
 '~>'(Cond, IfFailed) :-
     \+call(Cond) ->
@@ -730,3 +733,28 @@ true(X) :- init(X).
 
 % FIXME: It looks like distinct/2 should behave like dif/2
 distinct(A, B) :- A \= B.
+
+% Ciao prolog requires main/1 predicate in order to run the script
+main(_).
+
+% Uncomment if running in JLog
+%catch(G, _, _) :- call(G).
+%false :- \+true.
+
+% This file was tested and can be executed directly by the following Prolog systems:
+%   GNU Prolog:
+%       gprolog --consult-file zxvt.pdb
+%   Scryer Prolog:
+%       scryer-prolog zxvt.pdb
+%   SWI Prolog:
+%       swipl -s zxvt.pdb
+%   Ciao:
+%       ciao run zxvt.pdb
+%   Trealla Prolog:
+%       tpl zxvt.pdb
+%   tuProlog:
+%       TODO: Not working yet: https://github.com/tuProlog/2p-kt/issues/5
+%       java -jar /opt/tuprolog/2p-repl-0.18.1-redist.jar -T zxvt.pdb
+%   B-Prolog
+%       WARNING: Doesn't really work without removing '|'/2 and '$'/2 operators
+%       bp "consult('zxvt.pdb')"
