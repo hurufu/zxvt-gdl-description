@@ -742,7 +742,7 @@ distinct(A, B) :- A \= B.
 % Ciao prolog requires main/1 predicate in order to run the script
 main(_).
 
-% Uncomment if running in JLog
+% NOTE: Uncomment following code before running JLog
 %catch(G, _, _) :- call(G).
 %false :- \+true.
 
@@ -760,6 +760,8 @@ main(_).
 %   tuProlog:
 %       TODO: Not working yet: https://github.com/tuProlog/2p-kt/issues/5
 %       java -jar /opt/tuprolog/2p-repl-0.18.1-redist.jar -T zxvt.pdb
-%   B-Prolog
+%   B-Prolog:
 %       WARNING: Doesn't really work without removing '|'/2 and '$'/2 operators
 %       bp "consult('zxvt.pdb')"
+%   JLog:
+%      java -jar /opt/jlog/1.3.6/JLog.jar
