@@ -514,6 +514,10 @@ ns_lt(A, B) :-
     ns_le(A, B) &
     distinct(A, B).
 
+% TODO: Is it possible to define somethin similar in GDL?
+%eval(A + B = C) :-
+%    add(A, B, C).
+
 ns_val(ns( 0, 0)).
 ns_val(ns( 1, succ(0))).
 ns_val(ns( 2, succ(succ(0)))).
