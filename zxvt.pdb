@@ -123,15 +123,16 @@ next(cell(FromAndTo, NewSituation)) :-
     does(random, roll(D)) &
     does(_, move(_, from(FromAndTo), to(FromAndTo))) &
     true(cell(FromAndTo, OldSituation)) &
-    nrules(OldSituation, D, NewSituation).
+    multi_throw_situation(D, OldSituation, NewSituation).
 
 % If a cell already contains a players pawn, then a sum must be calculated
 next(cell(To, NewSituation)) :-
+    does(random, roll(D)) &
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, situation(army(of(Player), count(StationaryPawns)), On))) &
-    add(StationaryPawns, MovingPawns, NewPawns) &
-    nrules(situation(army(of(Player), count(NewPawns)), On), NewSituation).
+    saturated_add(StationaryPawns, MovingPawns, NewPawns) &
+    multi_throw_situation(D, situation(army(of(Player), count(NewPawns)), On), NewSituation).
 
 % Destination is captured by player according to rule book and all pawns appear there, if a cell doesn't have any pawn
 next(cell(To, NewSituation)) :-
@@ -139,7 +140,7 @@ next(cell(To, NewSituation)) :-
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, situation(nobody, On))) &
-    nrules(situation(army(of(Player), count(MovingPawns)), On), D, NewSituation).
+    multi_throw_situation(D, situation(army(of(Player), count(MovingPawns)), On), NewSituation).
 
 % Origin retains its capture state and moved pawns are removed
 next(cell(From, NewSituation)) :-
@@ -221,7 +222,7 @@ possible_pawn_stack(Player, PossiblePawnStack) :-
     valid_move(move(M, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, situation(army(of(Player), count(N)), _))) &
-    add(M, N, PossiblePawnStack).
+    saturated_add(M, N, PossiblePawnStack).
 possible_pawn_stack(Player, PossiblePawnStack) :-
     true(cell(_, situation(army(of(Player), count(PossiblePawnStack)), _))).
 
