@@ -424,6 +424,51 @@ nth_element(Tp, N, L, E) :-
 %    max_element(T, OldMax) &
 %    maximum(H, OldMax, Max).
 
+% Saturation arithmetic utils
+%
+% Subtraction, interestingly enough, isn't an inverse of addtion (and vice
+% versa) in saturation arithmetic. It is better to think of it as a completely
+% different operation. I propose to call an inverse of addtion an anti-addtion
+% (⨤) and an inverse of subtraction an anti-subtraction (̃−). Also it should be
+% noted that those anti-operations are proper relations and they aren't
+% functions.
+%
+% Consider this example (saturation bounds [0, 4]):
+%   2 + 3 = 4
+% Subtraction will yield following values:
+%   4 − 3 = 1
+%   4 − 2 = 2
+% Anti-addition will produce a set:
+%   4 ⨤ 3 = {1, 2, 3, 4}
+%   4 ⨤ 2 = {2, 3, 4}
+
+saturated_add(A, B, C) :- saturated_add_ns(ns(A, _), ns(B, _), ns(C, _)).
+saturated_sub(A, B, C) :- saturated_sub_ns(ns(A, _), ns(B, _), ns(C, _)).
+
+saturated_add_ns(ns(0, 0), B, B) :-
+    ns_val(B).
+saturated_add_ns(A, B, C) :-
+    ns_suc(Am1, A) &
+    ns_suc(B, Bp1) &
+    saturated_add_ns(Am1, Bp1, C),
+    ns_val(C).
+saturated_add_ns(A, B, B) :-
+    ns_suc(_, A) &
+    ns_val(B) &
+    ~ns_suc(B, _).
+
+saturated_sub_ns(A, ns(0, 0), A) :-
+    ns_val(A).
+saturated_sub_ns(A, B, C) :-
+    ns_suc(Bm1, B) &
+    ns_suc(Am1, A) &
+    saturated_sub_ns(Am1, Bm1, C),
+    ns_val(C).
+saturated_sub_ns(A, B, ns(0, 0)) :-
+    ns_suc(_, B) &
+    ns_val(A) &
+    ~ns_suc(_, A).
+
 % Arithmetic utils
 num(A) :- ns_val(ns(A, _)).
 eq(A, A) :- ns_eq(ns(A, S), ns(A, S)).
@@ -485,10 +530,34 @@ ns_val(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
 
 % Arithmetic tests
 all_arithmetics_tests_are_passing :-
+    saturated_addition_holds_for_all_inputs,
+    saturated_subtraction_holds_for_all_inputs,
+    intersection_of_saturated_addtion_and_saturated_subtraction_is_always_a_regular_addition,
     all_arithmetic_predicates_always_halt,
     all_numbers_are_legal,
     all_le_tests,
     all_summation_tests.
+
+intersection_of_saturated_addtion_and_saturated_subtraction_is_always_a_regular_addition :-
+    \+there_is_a_combination_of_numbers_for_which_intersection_of_saturated_addtion_and_saturated_subtraction_isnt_a_regular_addition(_).
+there_is_a_combination_of_numbers_for_which_intersection_of_saturated_addtion_and_saturated_subtraction_isnt_a_regular_addition(A+B=C) :-
+    saturated_add(A, B, C),
+    saturated_sub(C, B, A),
+    \+add(A, B, C).
+
+saturated_subtraction_holds_for_all_inputs :-
+    \+there_is_an_input_for_which_saturated_subtraction_doesnt_hold(_).
+there_is_an_input_for_which_saturated_subtraction_doesnt_hold(A+B) :-
+    num(A),
+    num(B),
+    \+saturated_sub(A, B, _).
+
+saturated_addition_holds_for_all_inputs :-
+    \+there_is_an_input_for_which_saturated_addition_doesnt_hold(_).
+there_is_an_input_for_which_saturated_addition_doesnt_hold(A-B) :-
+    num(A),
+    num(B),
+    \+saturated_add(A, B, _).
 
 all_numbers_are_legal :-
     \+val_generates_illegal_number(_).
@@ -532,6 +601,8 @@ all_arithmetic_predicates_always_halt :-
     always_halts(eq(_, _)),
     always_halts(le(_, _)),
     always_halts(lt(_, _)),
+    always_halts(saturated_add(_,_,_)),
+    always_halts(saturated_sub(_,_,_)),
     always_halts(add(_, _, _)),
    *always_halts(mul(_, _, _)),
    *always_halts(pow(_, _, _)).
