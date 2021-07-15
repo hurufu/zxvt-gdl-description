@@ -84,7 +84,7 @@ legal(Player, move(MovingPawns, from(From), to(To))) :-
     (
         true(cell(To, situation(army(of(Player), _), _))) |
         true(cell(To, situation(nobody, _)))
-    ),
+    ) &
     distinct(From, To).
 % It's not legal to move only part of a stack to the same cell as currently standing on
 legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
@@ -429,7 +429,7 @@ saturated_add_ns(ns(0, 0), B, B) :-
 saturated_add_ns(A, B, C) :-
     ns_suc(Am1, A) &
     ns_suc(B, Bp1) &
-    saturated_add_ns(Am1, Bp1, C),
+    saturated_add_ns(Am1, Bp1, C) &
     ns_val(C).
 saturated_add_ns(A, B, B) :-
     ns_suc(_, A) &
@@ -441,7 +441,7 @@ saturated_sub_ns(A, ns(0, 0), A) :-
 saturated_sub_ns(A, B, C) :-
     ns_suc(Bm1, B) &
     ns_suc(Am1, A) &
-    saturated_sub_ns(Am1, Bm1, C),
+    saturated_sub_ns(Am1, Bm1, C) &
     ns_val(C).
 saturated_sub_ns(A, B, ns(0, 0)) :-
     ns_suc(_, B) &
