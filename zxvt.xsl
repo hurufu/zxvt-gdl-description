@@ -11,14 +11,19 @@
             width: <xsl:value-of select="$width * 0.333"/>px;
             height: <xsl:value-of select="$height * 0.333"/>px;
             border: 2px solid #000;
-            background-color: #CCCCCC;
             font-size: <xsl:value-of select="$width * 0.6 * 0.333"/>px;
             text-align: center;
             font-weight: bold;
             align: center;
           }
-          td.red {
-            background-color: #CC0000;
+          td[ownership="red"] {
+            background-color: #990000;
+          }
+          td[ownership="wild"] {
+            background-color: #CCCCCC;
+          }
+          td[occupation="red"] {
+            color: #CC0000;
           }
           samp.red {
             color: #CC0000;
@@ -29,24 +34,21 @@
       </head>
       <body>
         <xsl:apply-templates select="state"/>
-        <xsl:text>Control: </xsl:text>
-        <samp>
-          <xsl:attribute name="class">
+        <div>
+          <xsl:text>Control: </xsl:text>
+          <samp>
+            <xsl:attribute name="class">
+              <xsl:value-of select="state/fact[relation = 'control']/argument"/>
+            </xsl:attribute>
             <xsl:value-of select="state/fact[relation = 'control']/argument"/>
-          </xsl:attribute>
-          <xsl:value-of select="state/fact[relation = 'control']/argument"/>
-        </samp>
-        <xsl:if test="state/fact[relation = 'last_roll']">
-          <xsl:text>, last roll: </xsl:text>
-          <xsl:value-of select="state/fact[relation = 'last_roll']/argument[1]"/>
-          (<xsl:value-of select="state/fact[relation = 'last_roll']/argument[2]"/>)
-        </xsl:if>
+          </samp>
+        </div>
       </body>
     </html>
   </xsl:template>
   <!---->
   <xsl:template match="state">
-    <table>
+    <table class="board">
       <xsl:for-each select="fact[relation = 'cell']">
         <xsl:sort select="argument[relation = 'rc']/argument[1]"/>
         <xsl:sort select="argument[relation = 'rc']/argument[2]"/>
@@ -62,34 +64,42 @@
                   <xsl:value-of select="argument[relation = 'rc']/argument[1]"/>
                   <xsl:value-of select="argument[relation = 'rc']/argument[2]"/>
                 </xsl:attribute>
-                <xsl:choose>
-                  <xsl:when test="argument = 'wild'">
-                    <xsl:attribute name="class">wild</xsl:attribute>
-                  </xsl:when>
-                  <xsl:when test="argument[relation = 'captured_by']/argument = 'red'">
-                    <xsl:attribute name="class">red</xsl:attribute>
-                  </xsl:when>
-                  <xsl:otherwise>
-                    <xsl:message terminate="yes">
-                      <xsl:text>Unknown cell:</xsl:text>
-                      <xsl:apply-templates select="." mode="serialize"/>
-                    </xsl:message>
-                  </xsl:otherwise>
-                </xsl:choose>
-                <xsl:if test="argument[relation = 'with_pawn']/argument[relation = 'number']/argument">
-                  <span>
-                    <xsl:attribute name="class">
-                      <xsl:value-of select="argument[relation = 'with_pawn']/argument[relation = 'of']/argument"/>
-                    </xsl:attribute>
-                    <xsl:value-of select="argument[relation = 'with_pawn']/argument[relation = 'number']/argument"/>
-                  </span>
-                </xsl:if>
+                <xsl:apply-templates select="argument[relation='situation']" mode="cell"/>
               </td>
             </xsl:for-each>
           </tr>
         </xsl:if>
       </xsl:for-each>
     </table>
+  </xsl:template>
+  <!---->
+  <xsl:template match="argument[argument='nobody']" mode="cell">
+    <xsl:attribute name="occupation">nobody</xsl:attribute>
+    <xsl:apply-templates select="argument[relation='on']" mode="cell"/>
+  </xsl:template>
+  <!---->
+  <xsl:template match="argument[argument/relation='army']" mode="cell">
+    <xsl:attribute name="occupation">
+      <xsl:value-of select="argument/argument[relation='of']/argument"/>
+    </xsl:attribute>
+    <xsl:apply-templates select="argument[relation='on']" mode="cell"/>
+    <xsl:value-of select="argument/argument[relation='count']/argument"/>
+  </xsl:template>
+  <!---->
+  <xsl:template match="argument[relation='on']" mode="cell">
+    <xsl:attribute name="tile">
+      <xsl:value-of select="argument[1]"/>
+    </xsl:attribute>
+    <xsl:apply-templates select="argument[2]" mode="cell"/>
+  </xsl:template>
+  <!---->
+  <xsl:template match="argument[text()='wild']" mode="cell">
+    <xsl:attribute name="ownership">wild</xsl:attribute>
+  </xsl:template>
+  <xsl:template match="argument[relation='owned_by']" mode="cell">
+    <xsl:attribute name="ownership">
+      <xsl:value-of select="argument"/>
+    </xsl:attribute>
   </xsl:template>
   <!--
   Only used for debugging
