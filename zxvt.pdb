@@ -6,6 +6,8 @@
 % Goal is to capture the whole board
 % Each player is movin simultaneously with a random role
 % TODO: Consider adding different game tactic, where each roles moves separately
+% TODO: Consider rewriting base proposition to verify no a single cell, but a
+% whole board, so it can check for example if a cell dissapears.
 
 % WARNING: Remove to get valid program in GDL-II (HRF)
 :- op(1000, xfy, '&').
@@ -27,6 +29,8 @@ start_position(red, rc(1,1)).
 %Avoid exception if all UI enrichments are disabled
 rich_ui(no_rich_ui).
 rich_ui(last_roll).
+rich_ui(last_move).
+rich_ui(last_cell).
 rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
 rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
 %rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
@@ -54,12 +58,20 @@ input(Player, Move) :-
 input(Player, spawn(at(StartPosition))) :-
     start_position(Player, StartPosition).
 
-base(Cell) :- valid_cell(Cell).
+base(Cell) :-
+    unify_cell(Cell, cell(_, situation(army(of(_), count(X)), _))) &
+    le(1, X).
+base(Cell) :-
+    unify_cell(Cell, cell(_, situation(nobody, _))).
 base(control(R)) :- player(R).
-base(last_roll(D, Outcome)) :-
+base(last_roll(D)) :-
     rich_ui(last_roll) &
-    valid_die(D) &
-    valid_outcome(Outcome).
+    valid_dice(D).
+base(last_move(Player, Move)) :-
+    player(Player) &
+    valid_move(Move).
+base(last_cell(Cell)) :-
+    valid_cell(Cell).
 
 init(cell(StartPosition, situation(army(of(Player), count(1)), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
@@ -94,24 +106,23 @@ legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
 % A new pawn can be spawned only if current player doesn't have any pawn left
 % and it should be the only choice for a player in such situation
 legal(Player, spawn(at(StartPosition))) :-
+    player(Player) &
     true(control(Player)) &
     start_position(Player, StartPosition) &
-    (
-        true_for_each_cell(situation(nobody, _)) |
-        (
-            true_for_each_cell(situation(army(of(Oponent), _), _)) &
-            distinct(Player, Oponent)
-        )
-    ).
+    ~player_has_an_army(Player).
+
+player_has_an_army(Player) :-
+    true(cell(_, situation(army(of(Player), _), _))).
 
 % TODO: goal/2 should succeed only once for any player
 goal(random, 0).
 goal(Player, Score) :-
+    player(Player) &
     player_score(Player, Score).
 
 % Games ends if all board is captured, ie there are no wild cells left
 terminal :-
-    true_for_each_cell(situation(_, on(_, owned_by(_)))).
+    there_is_no_wild_cells_left(dupa).
 
 % TODO: Game ends if an opposite side of a board is captured
 %terminal :-
@@ -148,20 +159,30 @@ next(cell(From, NewSituation)) :-
     distinct(From, To) &
     true(cell(From, situation(army(Of, count(OldPawns)), On))) &
     add(NewPawns, MovingPawns, OldPawns) &
+    le(1, NewPawns) &
     unify_situation(NewSituation, situation(army(Of, count(NewPawns)), On)).
+
+next(cell(From, NewSituation)) :-
+    does(_, move(MovingPawns, from(From), to(To))) &
+    distinct(From, To) &
+    true(cell(From, situation(army(_, count(OldPawns)), On))) &
+    add(0, MovingPawns, OldPawns) &
+    unify_situation(NewSituation, situation(nobody, On)).
 
 % All other cells should retains their respective state
 next(cell(Rc, Situation)) :-
     does(_, move(_, from(From), to(To))) &
     true(cell(Rc, Situation)) &
     distinct(Rc, From) &
-    distinct(Rc, To).
+    distinct(Rc, To) &
+    valid_situation(Situation).
 
 % All other cells should retains their respective state
 next(cell(Rc, Situation)) :-
     does(_, spawn(at(Spawn))) &
     true(cell(Rc, Situation)) &
-    distinct(Rc, Spawn).
+    distinct(Rc, Spawn) &
+    valid_situation(Situation).
 
 next(cell(Spawn, situation(army(of(Player), count(NewCount)), On))) :-
     does(Player, spawn(at(Spawn))) &
@@ -181,30 +202,36 @@ next(last_roll(Dice)) :-
     rich_ui(last_roll) &
     does(random, roll(Dice)).
 
+next(last_move(Player, Move)) :-
+    rich_ui(last_move) &
+    player(Player) &
+    does(Player, Move).
+
+next(last_cell(Cell)) :-
+    rich_ui(last_cell) &
+    does(_, move(_, _, to(To))) &
+    unify_cell(Cell, cell(To, _)) &
+    true(Cell).
+
 % Input utils
 player_score(Player, 100) :-
-    true_for_each_cell(situation(_, on(_, owned_by(Player)))).
-player_score(Player, 50) :-
-    true(cell(_, situation(_, on(_, wild)))) &
-    true(cell(_, situation(_, on(_, owned_by(Player))))).
+    player(Player) &
+    there_is_no_wild_cells_left(dupa).
 player_score(Player, 0) :-
     player(Player) &
-    true_for_each_cell(situation(_, on(_, wild))).
+    ~there_is_no_wild_cells_left(dupa).
+
+there_is_no_wild_cells_left(dupa):-
+    ~there_is_a_wild_cell(dupa).
+there_is_a_wild_cell(dupa) :-
+    unify_cell(Cell, cell(_, situation(_, on(_, wild)))) &
+    true(Cell).
 
 %% TODO: Implement it in GDL
 %alt_player_score(Player, NumberOfCapturedCells) :-
 %    player(Player) &
 %    findall(I, (I=cell(_, captured_by(Player), _), true(I)), L) &
 %    length(L, NumberOfCapturedCells).
-
-true_for_each_cell(Situation) :-
-    valid_situation(Situation) &
-    ~there_is_a_cell_with_a_distinct_situation(Situation).
-there_is_a_cell_with_a_distinct_situation(Situation) :-
-    true(cell(Rc, S)) &
-    valid_situation(S) &
-    distinct(S, Situation) &
-    valid_rc(Rc).
 
 % TODO: max_possible_pawn_stack/2 should succeed only once
 max_possible_pawn_stack(Player, MaxPossiblePawnStack) :-
@@ -241,7 +268,10 @@ neighboring_rc_aux(rc(Lr,C), rc(Rr,C)) :- num(C) & add(1, Lr, Rr).
 neighboring_rc_aux(rc(Lr,C), rc(Rr,C)) :- num(C) & add(1, Rr, Lr).
 
 multi_throw_situation([], S, S) :-
-    valid_situation(S).
+    unify_situation(S, situation(army(of(_), count(X)), _)) &
+    le(1, X).
+multi_throw_situation([], S, S) :-
+    unify_situation(S, situation(nobody, _)).
 multi_throw_situation(Dice, Before, After) :-
     type_list_head_tail(valid_die, Dice, Die, T) &
     single_throw_situation(Die, Before, Next) &
@@ -378,13 +408,21 @@ type_nl_03(Tp, [H,T1,T2]) :- type_element(Tp, H) & type_nl_02(Tp, [T1,T2]).
 type_nl_04(Tp, [H,T1,T2,T3]) :- type_element(Tp, H) & type_nl_03(Tp, [T1,T2,T3]).
 type_nl_05(Tp, [H,T1,T2,T3,T4]) :- type_element(Tp, H) & type_nl_04(Tp, [T1,T2,T3,T4]).
 type_nl_06(Tp, [H,T1,T2,T3,T4,T5]) :- type_element(Tp, H) & type_nl_05(Tp, [T1,T2,T3,T4,T5]).
-type_nl(Tp, nl(0, [])) :- type_nl_00(Tp, []).
-type_nl(Tp, nl(1, [H])) :- type_nl_01(Tp, [H]).
-type_nl(Tp, nl(2, [H,T1])) :- type_nl_02(Tp, [H,T1]).
-type_nl(Tp, nl(3, [H,T1,T2])) :- type_nl_03(Tp, [H,T1,T2]).
-type_nl(Tp, nl(4, [H,T1,T2,T3])) :- type_nl_04(Tp, [H,T1,T2,T3]).
-type_nl(Tp, nl(5, [H,T1,T2,T3,T4])) :- type_nl_05(Tp, [H,T1,T2,T3,T4]).
-type_nl(Tp, nl(6, [H,T1,T2,T3,T4,T5])) :- type_nl_06(Tp, [H,T1,T2,T3,T4,T5]).
+%type_nl_07(Tp, [H,T1,T2,T3,T4,T5,T6]) :- type_element(Tp, H) & type_nl_06(Tp, [T1,T2,T3,T4,T5,T6]).
+%type_nl_08(Tp, [H,T1,T2,T3,T4,T5,T6,T7]) :- type_element(Tp, H) & type_nl_07(Tp, [T1,T2,T3,T4,T5,T6,T7]).
+%type_nl_09(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8]) :- type_element(Tp, H) & type_nl_08(Tp, [T1,T2,T3,T4,T5,T6,T7,T8]).
+%type_nl_10(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9]) :- type_element(Tp, H) & type_nl_09(Tp, [T1,T2,T3,T4,T5,T6,T7,T8,T9]).
+type_nl(Tp, nl( 0, [])) :- type_nl_00(Tp, []).
+type_nl(Tp, nl( 1, [H])) :- type_nl_01(Tp, [H]).
+type_nl(Tp, nl( 2, [H,T1])) :- type_nl_02(Tp, [H,T1]).
+type_nl(Tp, nl( 3, [H,T1,T2])) :- type_nl_03(Tp, [H,T1,T2]).
+type_nl(Tp, nl( 4, [H,T1,T2,T3])) :- type_nl_04(Tp, [H,T1,T2,T3]).
+type_nl(Tp, nl( 5, [H,T1,T2,T3,T4])) :- type_nl_05(Tp, [H,T1,T2,T3,T4]).
+type_nl(Tp, nl( 6, [H,T1,T2,T3,T4,T5])) :- type_nl_06(Tp, [H,T1,T2,T3,T4,T5]).
+%type_nl(Tp, nl( 7, [H,T1,T2,T3,T4,T5,T6])) :- type_nl_07(Tp, [H,T1,T2,T3,T4,T5,T6]).
+%type_nl(Tp, nl( 8, [H,T1,T2,T3,T4,T5,T6,T7])) :- type_nl_08(Tp, [H,T1,T2,T3,T4,T5,T6,T7]).
+%type_nl(Tp, nl( 9, [H,T1,T2,T3,T4,T5,T6,T7,T8])) :- type_nl_09(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8]).
+%type_nl(Tp, nl(10, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9])) :- type_nl_10(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9]).
 %type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
 type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
 
@@ -435,7 +473,10 @@ saturated_add_ns(A, B, C) :-
 saturated_add_ns(A, B, B) :-
     ns_suc(_, A) &
     ns_val(B) &
-    ~ns_suc(B, _).
+    ~saturated_add_ns_aux(B).
+saturated_add_ns_aux(B) :-
+    ns_val(Tmp) &
+    ns_suc(B, Tmp).
 
 saturated_sub_ns(A, ns(0, 0), A) :-
     ns_val(A).
@@ -447,7 +488,10 @@ saturated_sub_ns(A, B, C) :-
 saturated_sub_ns(A, B, ns(0, 0)) :-
     ns_suc(_, B) &
     ns_val(A) &
-    ~ns_suc(_, A).
+    ~saturated_sub_ns_aux(A).
+saturated_sub_ns_aux(A) :-
+    ns_val(Tmp) &
+     ns_suc(Tmp, A).
 
 % Arithmetic utils
 num(A) :- ns_val(ns(A, _)).
@@ -505,10 +549,10 @@ ns_val(ns( 3, succ(succ(succ(0))))).
 ns_val(ns( 4, succ(succ(succ(succ(0)))))).
 ns_val(ns( 5, succ(succ(succ(succ(succ(0))))))).
 ns_val(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
-ns_val(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
-ns_val(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
-ns_val(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
-ns_val(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
+%ns_val(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
+%ns_val(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
+%ns_val(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
+%ns_val(ns(10, succ(succ(succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))))).
 
 % Prolog code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -702,13 +746,22 @@ current_state_is_not_terminal :-
 all_rules_tests_are_passing :-
     rules_should_terminate_if_count_is_set_but_dice_list_is_not,
     rules_should_terminate_if_dice_list_is_set_but_count_is_not,
+    count_zero_doesnt_leak,
     all_rules([6,6,1,1], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(4)), on(field,wild))]),
     all_rules([2,1,1,4], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
     all_rules([1,2,5,6], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
     all_rules([1], situation(army(of(red), count(1)), on(field, owned_by(red))), [situation(army(of(red), count(1)), on(field,owned_by(red)))]),
     all_rules([1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
    *all_rules([1,1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
-    all_rules([6,6,6,6,6,6], situation(army(of(red),count(10)),on(field,wild)), [situation(army(of(red),count(10)),on(field,wild))]).
+    all_rules([6,6,6,6,6,6], situation(army(of(red),count(6)),on(field,wild)), [situation(army(of(red),count(6)),on(field,wild))]).
+
+count_zero_doesnt_leak :-
+    \+count_zero_leaks_out(_,_,_).
+count_zero_leaks_out(Dice, Before, After) :-
+    player(Player),
+    list_up_to(2, Dice),
+    After = situation(army(of(Player), count(0)), _),
+    multi_throw_situation(Dice, Before, After).
 
 rules_should_terminate_if_count_is_set_but_dice_list_is_not :-
     always_halts(multi_throw_situation([_,_,_], situation(army(of(red), count(1)), on(field, wild)), _)).
@@ -731,6 +784,20 @@ all_tests_are_passing :-
     all_arithmetics_tests_are_passing,
     all_input_tests_are_passing.
 
+% Test utils
+list_up_to(0, []).
+list_up_to(N, L) :-
+    N > 0,
+    (
+        (
+            length(L, N)
+        );
+        (
+            M is N - 1,
+            list_up_to(M, L)
+        )
+    ).
+
 list_of_identical_values([]).
 list_of_identical_values([H|T]) :-
     value_of_all_elements_of_a_list(H, T).
@@ -752,7 +819,7 @@ max_number(A, B, A) :- A > B.
 max_number(A, B, B) :- B >= A.
 
 % Assert that current configuration is initial
-true(X) :- init(X).
+%true(X) :- init(X).
 
 log_term(Prefix, Term) :-
     write(Prefix) -> write(' : ') -> write(Term) -> nl.
@@ -824,3 +891,147 @@ main(_).
 %       bp "consult('zxvt.pdb')"
 %   JLog:
 %      java -jar /opt/jlog/1.3.6/JLog.jar
+%
+%
+% StaticValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           distinct is a reserved Datalog keyword, and appears to be used as a constant here. Check your syntax.
+%           distinct is a reserved Datalog keyword, and appears to be used as a constant here. Check your syntax.
+%
+% BasesInputsValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Ran into a runtime exception while simulating:
+%               java.lang.IndexOutOfBoundsException:
+%                   index (1) must be less than size (1)
+%
+% SimulationValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           ould not find legal moves while simulating:
+%               There are no legal moves defined for red in [
+%                   ( true ( cell ( rc 1 1 ) ( situation nobody ( on field ( owned_by red ) ) ) ) )
+%                   ( true ( cell ( rc 1 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 1 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 1 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( control red ) ),
+%                   ( true ( last_roll ( cons 1 nil ) ) ),
+%                   ( true ( last_cell ( cell ( rc 2 1 ) ( situation nobody ( on field wild ) ) ) ) ),
+%                   ( true ( last_move red ( move 1 ( from ( rc 1 1 ) ) ( to ( rc 2 1 ) ) ) ) ),
+%               ]
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SimulationValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Could not find goals while simulating:
+%               Goal is poorly defined for random in [
+%                   ( true ( cell ( rc 3 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 1 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( control red ) ),
+%                   ( true ( cell ( rc 3 1 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 1 ) ( situation ( army ( of red ) ( count 1 ) ) ( on field ( owned_by red ) ) ) ) )
+%               ]
+% BasesInputsValidator
+%    org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Ran into a runtime exception while simulating:
+%               java.lang.IndexOutOfBoundsException:
+%                   index (1) must be less than size (1)
+% StaticValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Unsafe rule:
+%               The following variables are used in the head but not defined in a positive conjunct of the rule:
+%                   [?Situation]
+%           Unsafe rule:
+%               The following variables are used in a negated sentence but not defined in a positive conjunct of the rule:
+%                   [?_40, ?_41, ?Situation]
+%           Unsafe rule:
+%               The following variables are used in the head but not defined in a positive conjunct of the rule:
+%                   [?Cell]
+%           Unsafe rule:
+%               The following variables are used in a negated sentence but not defined in a positive conjunct of the rule:
+%                   [?Cell]
+%           distinct is a reserved Datalog keyword, and appears to be used as a constant here. Check your syntax.
+
+%true(cell(rc(1, 1),  situation(nobody, on(field, wild)))).
+true(cell(rc(1, 1),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(1, 2),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(1, 3),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(2, 1),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(2, 2),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(2, 3),  situation(nobody, on(field, owned_by(red))))).
+true(cell(rc(3, 1),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+true(cell(rc(3, 2),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+true(cell(rc(3, 3),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+true(control(red)).
+true(last_cell(cell(rc(3, 2), situation(nobody, on(field, wild))))).
+true(last_move(red, move(1, from(rc(3, 3)), to(rc(3, 2))))).
+true(last_roll([4,6])).
+%
+%
+% SimulationValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Could not find goals while simulating:
+%               Goal is poorly defined for red in [
+%                   ( true ( cell ( rc 3 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 1 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 1 ) ( situation ( army ( of red ) ( count 1 ) ) ( on field ( owned_by red ) ) ) ) ),
+%                   ( true ( control red ) ),
+%                   ( true ( cell ( rc 2 2 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 1 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 3 ) ( situation nobody ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 3 1 ) ( situation nobody ( on field wild ) ) ) )
+%               ]
+
+% StaticValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Unsafe rule:
+%               The following variables are used in the head but not defined in a positive conjunct of the rule:
+%                   [?Situation]
+%           Unsafe rule:
+%               The following variables are used in a negated sentence but not defined in a positive conjunct of the rule:
+%                   [?Situation, ?_35, ?_34]
+%           Unsafe rule:
+%               The following variables are used in the head but not defined in a positive conjunct of the rule:
+%                   [?Cell]
+%           Unsafe rule:
+%               The following variables are used in a negated sentence but not defined in a positive conjunct of the rule:
+%                   [?Cell]
+%           distinct is a reserved Datalog keyword, and appears to be used as a constant here. Check your syntax.
+%
+%
+% SimulationValidator
+%   org.ggp.base.validator.ValidatorException:
+%   Validator:
+%   Could not find legal moves while simulating:
+%       There are no legal moves defined for random in [
+%true(cell(rc(1, 1), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(1, 2), situation(army(of(red), count(6)), on(field, wild)))).
+%true(cell(rc(1, 3), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 1), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 2), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 3), situation(nobody, on(field, wild)))).
+%true(cell(rc(3, 2), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(3, 3), situation(nobody, on(field, wild)))).
+%true(control(red)).
+%true(last_roll ( cons 6 ( cons 2 ( cons 6 ( cons 6 nil ) ) ) ) ) ),
+%true(last_cell ( cell ( rc 1 2 ) ( situation nobody ( on field wild ) ) ) ) ),
+%true(last_move red ( move 4 ( from ( rc 1 1 ) ) ( to ( rc 1 2 ) ) ) ) ),
+%       ]
