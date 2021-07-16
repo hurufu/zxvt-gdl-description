@@ -28,7 +28,7 @@
 (init (control red))
 (<= (legal random (roll ?Dice)) (true (control ?Player)) (max_possible_pawn_stack ?Player ?Max) (valid_dice ?Max ?Dice))
 (<= (legal ?Player (move ?MovingPawns (from ?From) (to ?To))) (true (control ?Player)) (true (cell ?From (situation (army (of ?Player) (count ?StationaryPawns)) ?_7))) (le ?MovingPawns ?StationaryPawns) (valid_move (move ?MovingPawns (from ?From) (to ?To))) (or (true (cell ?To (situation (army (of ?Player) ?_8) ?_9))) (true (cell ?To (situation nobody ?_10)))) (distinct ?From ?To))
-(<= (legal ?Player (move ?MovingPawns (from ?FromAndTo) (to ?FromAndTo))) (true (control ?Player)) (true (cell ?FromAndTo (situation (army (of ?Player) (count ?MovingPawns)) ?_11))) (valid_move (move ?MovingPawns (from ?FromAndTo) (to ?FromAndTo))))
+(<= (legal ?Player (move ?MovingPawns (from ?FromAndTo) (to ?FromAndTo))) (true (control ?Player)) (true (cell ?FromAndTo (situation (army (of ?Player) (count ?MovingPawns)) (on ?_11 wild)))) (valid_move (move ?MovingPawns (from ?FromAndTo) (to ?FromAndTo))))
 (<= (legal ?Player (spawn (at ?StartPosition))) (player ?Player) (true (control ?Player)) (start_position ?Player ?StartPosition) (not (player_has_an_army ?Player)))
 (<= (player_has_an_army ?Player) (true (cell ?_12 (situation (army (of ?Player) ?_13) ?_14))))
 (goal random 0)

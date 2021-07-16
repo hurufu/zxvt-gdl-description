@@ -99,10 +99,9 @@ legal(Player, move(MovingPawns, from(From), to(To))) :-
     ) &
     distinct(From, To).
 % It's not legal to move only part of a stack to the same cell as currently standing on
-% TODO: It should not be legal to stay on already captured cell
 legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
     true(control(Player)) &
-    true(cell(FromAndTo, situation(army(of(Player), count(MovingPawns)), _))) &
+    true(cell(FromAndTo, situation(army(of(Player), count(MovingPawns)), on(_, wild)))) &
     valid_move(move(MovingPawns, from(FromAndTo), to(FromAndTo))).
 % A new pawn can be spawned only if current player doesn't have any pawn left
 % and it should be the only choice for a player in such situation
