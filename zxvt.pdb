@@ -27,19 +27,21 @@ max_col(3).
 player(red).
 start_position(red, rc(1,1)).
 %Avoid exception if all UI enrichments are disabled
-rich_ui(no_rich_ui).
-rich_ui(last_roll).
-rich_ui(last_move).
-rich_ui(last_cell).
-rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
-rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
-%rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
-%rules(wild,    garrison, [minus(1),minus(1),minus(1),nothing ,capture,plus(1)]).
-%rules(wild,    fort,     [minus(1),minus(1),minus(1),capture ,plus(1),plus(1)]).
-rules(foreign, field,    [minus(1),minus(1),nothing ,nothing ,capture,capture]).
-rules(foreign, town,     [minus(1),minus(1),nothing ,nothing ,nothing,capture]).
-rules(foreign, garrison, [minus(1),minus(1),minus(1),nothing ,capture,capture]).
-rules(foreign, fort,     [minus(1),minus(1),minus(1),minus(1),nothing,capture]).
+%rich_ui(no_rich_ui).
+%rich_ui(last_roll).
+%rich_ui(last_move).
+%rich_ui(last_cell).
+%rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
+%rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
+%%rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
+%%rules(wild,    garrison, [minus(1),minus(1),minus(1),nothing ,capture,plus(1)]).
+%%rules(wild,    fort,     [minus(1),minus(1),minus(1),capture ,plus(1),plus(1)]).
+%rules(foreign, field,    [minus(1),minus(1),nothing ,nothing ,capture,capture]).
+%rules(foreign, town,     [minus(1),minus(1),nothing ,nothing ,nothing,capture]).
+%rules(foreign, garrison, [minus(1),minus(1),minus(1),nothing ,capture,capture]).
+%rules(foreign, fort,     [minus(1),minus(1),minus(1),minus(1),nothing,capture]).
+rules(own,     field,    [nothing ,nothing,nothing,nothing]).
+rules(wild,    field,    [minus(1),nothing,capture,plus(1)]).
 
 % GDL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -64,14 +66,14 @@ base(Cell) :-
 base(Cell) :-
     unify_cell(Cell, cell(_, situation(nobody, _))).
 base(control(R)) :- player(R).
-base(last_roll(D)) :-
-    rich_ui(last_roll) &
-    valid_dice(D).
-base(last_move(Player, Move)) :-
-    player(Player) &
-    valid_move(Move).
-base(last_cell(Cell)) :-
-    valid_cell(Cell).
+%base(last_roll(D)) :-
+%    rich_ui(last_roll) &
+%    valid_dice(D).
+%base(last_move(Player, Move)) :-
+%    player(Player) &
+%    valid_move(Move).
+%base(last_cell(Cell)) :-
+%    valid_cell(Cell).
 
 init(cell(StartPosition, situation(army(of(Player), count(1)), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
@@ -199,21 +201,21 @@ next(cell(Spawn, situation(army(of(Player), count(1)), On))) :-
 next(control(Player)) :-
     true(control(Player)).
 
-% TODO: Add outcome to the last_roll state
-next(last_roll(Dice)) :-
-    rich_ui(last_roll) &
-    does(random, roll(Dice)).
-
-next(last_move(Player, Move)) :-
-    rich_ui(last_move) &
-    player(Player) &
-    does(Player, Move).
-
-next(last_cell(Cell)) :-
-    rich_ui(last_cell) &
-    does(_, move(_, _, to(To))) &
-    unify_cell(Cell, cell(To, _)) &
-    true(Cell).
+%% TODO: Add outcome to the last_roll state
+%next(last_roll(Dice)) :-
+%    rich_ui(last_roll) &
+%    does(random, roll(Dice)).
+%
+%next(last_move(Player, Move)) :-
+%    rich_ui(last_move) &
+%    player(Player) &
+%    does(Player, Move).
+%
+%next(last_cell(Cell)) :-
+%    rich_ui(last_cell) &
+%    does(_, move(_, _, to(To))) &
+%    unify_cell(Cell, cell(To, _)) &
+%    true(Cell).
 
 % Input utils
 player_score(Player, 100) :-
@@ -383,8 +385,8 @@ valid_die(1).
 valid_die(2).
 valid_die(3).
 valid_die(4).
-valid_die(5).
-valid_die(6).
+%valid_die(5).
+%valid_die(6).
 valid_dice(L) :-
     type_nl(valid_die, nl(_, L)).
 valid_dice(Number, Dice) :-
@@ -408,8 +410,8 @@ type_nl_01(Tp, [H]) :- type_element(Tp, H) & type_nl_00(Tp, []).
 type_nl_02(Tp, [H,T1]) :- type_element(Tp, H) & type_nl_01(Tp, [T1]).
 type_nl_03(Tp, [H,T1,T2]) :- type_element(Tp, H) & type_nl_02(Tp, [T1,T2]).
 type_nl_04(Tp, [H,T1,T2,T3]) :- type_element(Tp, H) & type_nl_03(Tp, [T1,T2,T3]).
-type_nl_05(Tp, [H,T1,T2,T3,T4]) :- type_element(Tp, H) & type_nl_04(Tp, [T1,T2,T3,T4]).
-type_nl_06(Tp, [H,T1,T2,T3,T4,T5]) :- type_element(Tp, H) & type_nl_05(Tp, [T1,T2,T3,T4,T5]).
+%type_nl_05(Tp, [H,T1,T2,T3,T4]) :- type_element(Tp, H) & type_nl_04(Tp, [T1,T2,T3,T4]).
+%type_nl_06(Tp, [H,T1,T2,T3,T4,T5]) :- type_element(Tp, H) & type_nl_05(Tp, [T1,T2,T3,T4,T5]).
 %type_nl_07(Tp, [H,T1,T2,T3,T4,T5,T6]) :- type_element(Tp, H) & type_nl_06(Tp, [T1,T2,T3,T4,T5,T6]).
 %type_nl_08(Tp, [H,T1,T2,T3,T4,T5,T6,T7]) :- type_element(Tp, H) & type_nl_07(Tp, [T1,T2,T3,T4,T5,T6,T7]).
 %type_nl_09(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8]) :- type_element(Tp, H) & type_nl_08(Tp, [T1,T2,T3,T4,T5,T6,T7,T8]).
@@ -419,14 +421,14 @@ type_nl(Tp, nl( 1, [H])) :- type_nl_01(Tp, [H]).
 type_nl(Tp, nl( 2, [H,T1])) :- type_nl_02(Tp, [H,T1]).
 type_nl(Tp, nl( 3, [H,T1,T2])) :- type_nl_03(Tp, [H,T1,T2]).
 type_nl(Tp, nl( 4, [H,T1,T2,T3])) :- type_nl_04(Tp, [H,T1,T2,T3]).
-type_nl(Tp, nl( 5, [H,T1,T2,T3,T4])) :- type_nl_05(Tp, [H,T1,T2,T3,T4]).
-type_nl(Tp, nl( 6, [H,T1,T2,T3,T4,T5])) :- type_nl_06(Tp, [H,T1,T2,T3,T4,T5]).
+%type_nl(Tp, nl( 5, [H,T1,T2,T3,T4])) :- type_nl_05(Tp, [H,T1,T2,T3,T4]).
+%type_nl(Tp, nl( 6, [H,T1,T2,T3,T4,T5])) :- type_nl_06(Tp, [H,T1,T2,T3,T4,T5]).
 %type_nl(Tp, nl( 7, [H,T1,T2,T3,T4,T5,T6])) :- type_nl_07(Tp, [H,T1,T2,T3,T4,T5,T6]).
 %type_nl(Tp, nl( 8, [H,T1,T2,T3,T4,T5,T6,T7])) :- type_nl_08(Tp, [H,T1,T2,T3,T4,T5,T6,T7]).
 %type_nl(Tp, nl( 9, [H,T1,T2,T3,T4,T5,T6,T7,T8])) :- type_nl_09(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8]).
 %type_nl(Tp, nl(10, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9])) :- type_nl_10(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9]).
-%type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
-type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
+type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
+%type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
 
 nth_element(Tp, 1, L, H) :-
     type_list_head_tail(Tp, L, H, _).
@@ -556,8 +558,8 @@ ns_val(ns( 1, succ(0))).
 ns_val(ns( 2, succ(succ(0)))).
 ns_val(ns( 3, succ(succ(succ(0))))).
 ns_val(ns( 4, succ(succ(succ(succ(0)))))).
-ns_val(ns( 5, succ(succ(succ(succ(succ(0))))))).
-ns_val(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
+%ns_val(ns( 5, succ(succ(succ(succ(succ(0))))))).
+%ns_val(ns( 6, succ(succ(succ(succ(succ(succ(0)))))))).
 %ns_val(ns( 7, succ(succ(succ(succ(succ(succ(succ(0))))))))).
 %ns_val(ns( 8, succ(succ(succ(succ(succ(succ(succ(succ(0)))))))))).
 %ns_val(ns( 9, succ(succ(succ(succ(succ(succ(succ(succ(succ(0))))))))))).
@@ -768,16 +770,16 @@ current_state_is_not_terminal :-
 
 % TODO: Why disabled test case is failing?
 all_rules_tests_are_passing :-
-    rules_should_terminate_if_count_is_set_but_dice_list_is_not,
-    rules_should_terminate_if_dice_list_is_set_but_count_is_not,
-    count_zero_doesnt_leak,
-    all_rules([6,6,1,1], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(4)), on(field,wild))]),
-    all_rules([2,1,1,4], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
-    all_rules([1,2,5,6], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
-    all_rules([1], situation(army(of(red), count(1)), on(field, owned_by(red))), [situation(army(of(red), count(1)), on(field,owned_by(red)))]),
-    all_rules([1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
+   ?rules_should_terminate_if_count_is_set_but_dice_list_is_not,
+   ?rules_should_terminate_if_dice_list_is_set_but_count_is_not,
+   ?count_zero_doesnt_leak,
+   ?all_rules([4,4,1,1], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,wild))]),
+   ?all_rules([2,1,1,3], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
+   ?all_rules([1,2,3,4], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
+   ?all_rules([1], situation(army(of(red), count(1)), on(field, owned_by(red))), [situation(army(of(red), count(1)), on(field,owned_by(red)))]),
+   ?all_rules([1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
    *all_rules([1,1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
-    all_rules([6,6,6,6,6,6], situation(army(of(red),count(6)),on(field,wild)), [situation(army(of(red),count(6)),on(field,wild))]).
+   *all_rules([6,6,6,6,6,6], situation(army(of(red),count(6)),on(field,wild)), [situation(army(of(red),count(6)),on(field,wild))]).
 
 count_zero_doesnt_leak :-
     \+count_zero_leaks_out(_,_,_).
@@ -827,18 +829,18 @@ clean_up :-
     retractall(does).
 
 all_tests_are_passing :-
-    all_configuration_tests_are_passing,
-    all_statements_about_current_configuration_are_valid,
-    max_possible_pawn_stack_is_ok_for_the_current_configuration,
-    all_legal_moves_for_current_configuration_are_valid,
-    all_roles_have_a_score_for_current_configuration,
-    all_scores_are_unambiguous_for_current_configuration,
-    current_state_is_not_terminal,
+   ?all_configuration_tests_are_passing,
+   ?all_statements_about_current_configuration_are_valid,
+   ?max_possible_pawn_stack_is_ok_for_the_current_configuration,
+   ?all_legal_moves_for_current_configuration_are_valid,
+   ?all_roles_have_a_score_for_current_configuration,
+   ?all_scores_are_unambiguous_for_current_configuration,
+   ?current_state_is_not_terminal,
    *all_board_tests_are_passing,
-    all_rules_tests_are_passing,
-    all_arithmetics_tests_are_passing,
-    all_lists_tests_are_passing,
-    all_input_tests_are_passing.
+   ?all_rules_tests_are_passing,
+   ?all_arithmetics_tests_are_passing,
+   ?all_lists_tests_are_passing,
+   ?all_input_tests_are_passing.
 
 % Test utils
 list_up_to(0, []).
