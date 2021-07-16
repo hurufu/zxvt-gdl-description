@@ -434,6 +434,13 @@ nth_element(Tp, N, L, E) :-
     add(1, M, N) &
     nth_element(Tp, M, T, E).
 
+type_list_length_prefix(Tp, L, 0, []) :- type_nl(Tp, nl(_, L)).
+type_list_length_prefix(Tp, L, N, S) :-
+    add(1, M, N) &
+    type_list_length_prefix(Tp, Lt, M, St) &
+    type_list_head_tail(Tp, L, H, Lt) &
+    type_list_head_tail(Tp, S, H, St).
+
 %% Numeric list utils
 %num_list_head_tail(List, H, T) :-
 %    type_list_head_tail(num, List, H, T).
@@ -636,6 +643,21 @@ all_arithmetic_predicates_always_halt :-
    *always_halts(mul(_, _, _)),
    *always_halts(pow(_, _, _)).
 
+% Test for operations on lists
+all_lists_tests_are_passing :-
+     % Test is disabled. It is expensive to check ALL possible dice lists.
+    *all_list_prefixes_conform_to_the_reference_implementation.
+
+all_list_prefixes_conform_to_the_reference_implementation :-
+    \+there_is_an_invalid_prefix(valid_die, _,_,_).
+there_is_an_invalid_prefix(Tp, L, N, S) :-
+    type_list_length_prefix(Tp, L, N, S),
+    \+reference_type_list_length_prefix(Tp, L, N, S).
+
+reference_type_list_length_prefix(_, L, N, S) :-
+    length(S, N),
+    prefix(S, L).
+
 % Configuration tests
 all_configuration_tests_are_passing :-
     there_is_a_strong_correspondence_between_players_and_spawns,
@@ -783,6 +805,7 @@ all_tests_are_passing :-
     current_state_is_not_terminal,
     all_rules_tests_are_passing,
     all_arithmetics_tests_are_passing,
+    all_lists_tests_are_passing,
     all_input_tests_are_passing.
 
 % Test utils
