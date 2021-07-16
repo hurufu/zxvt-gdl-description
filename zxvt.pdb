@@ -99,6 +99,7 @@ legal(Player, move(MovingPawns, from(From), to(To))) :-
     ) &
     distinct(From, To).
 % It's not legal to move only part of a stack to the same cell as currently standing on
+% TODO: It should not be legal to stay on already captured cell
 legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
     true(control(Player)) &
     true(cell(FromAndTo, situation(army(of(Player), count(MovingPawns)), _))) &
