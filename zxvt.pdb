@@ -144,7 +144,8 @@ next(cell(To, NewSituation)) :-
     distinct(From, To) &
     true(cell(To, situation(army(of(Player), count(StationaryPawns)), On))) &
     saturated_add(StationaryPawns, MovingPawns, NewPawns) &
-    multi_throw_situation(D, situation(army(of(Player), count(NewPawns)), On), NewSituation).
+    type_list_length_prefix(valid_die, D, NewPawns, ActiveDice) &
+    multi_throw_situation(ActiveDice, situation(army(of(Player), count(NewPawns)), On), NewSituation).
 
 % Destination is captured by player according to rule book and all pawns appear there, if a cell doesn't have any pawn
 next(cell(To, NewSituation)) :-
@@ -152,7 +153,8 @@ next(cell(To, NewSituation)) :-
     does(Player, move(MovingPawns, from(From), to(To))) &
     distinct(From, To) &
     true(cell(To, situation(nobody, On))) &
-    multi_throw_situation(D, situation(army(of(Player), count(MovingPawns)), On), NewSituation).
+    type_list_length_prefix(valid_die, D, MovingPawns, ActiveDice) &
+    multi_throw_situation(ActiveDice, situation(army(of(Player), count(MovingPawns)), On), NewSituation).
 
 % Origin retains its capture state and moved pawns are removed
 next(cell(From, NewSituation)) :-
@@ -795,6 +797,36 @@ rules_should_terminate_if_dice_list_is_set_but_count_is_not :-
 all_rules(Dice, Before, AllPossibleOutcomes) :-
     findall(After, multi_throw_situation(Dice, Before, After), AllPossibleOutcomes).
 
+% FIXME: Those tests require major rework. Right now they can't be executed
+% during startup, because they require to call retract/1 on already defined
+% predicate true/1.
+all_board_tests_are_passing :-
+    there_is_a_legal_move_if_more_dice_were_throw_than_pawns.
+
+there_is_a_legal_move_if_more_dice_were_throw_than_pawns :-
+    asserta(true(cell(rc(1, 1), situation(nobody,                  on(field, owned_by(red)))))),
+    asserta(true(cell(rc(1, 2), situation(nobody,                  on(field, owned_by(red)))))),
+    asserta(true(cell(rc(1, 3), situation(army(of(red), count(2)), on(field, owned_by(red)))))),
+    asserta(true(cell(rc(2, 1), situation(nobody,                  on(field, owned_by(red)))))),
+    asserta(true(cell(rc(2, 2), situation(nobody,                  on(field, wild         ))))),
+    asserta(true(cell(rc(2, 3), situation(nobody,                  on(field, owned_by(red)))))),
+    asserta(true(cell(rc(3, 1), situation(nobody,                  on(field, wild         ))))),
+    asserta(true(cell(rc(3, 2), situation(army(of(red), count(1)), on(field, wild         ))))),
+    asserta(true(cell(rc(3, 3), situation(nobody,                  on(field, owned_by(red)))))),
+    asserta(true(control(red))),
+    asserta(does(random, roll([1,4]))),
+    asserta(does(red, move(1, from(rc(3, 2)), to(rc(2, 2))))),
+    next(cell(rc(2,2), _)) ->
+        clean_up;
+        (
+            clean_up,
+            false
+        ).
+
+clean_up :-
+    retractall(true(_)),
+    retractall(does).
+
 all_tests_are_passing :-
     all_configuration_tests_are_passing,
     all_statements_about_current_configuration_are_valid,
@@ -803,6 +835,7 @@ all_tests_are_passing :-
     all_roles_have_a_score_for_current_configuration,
     all_scores_are_unambiguous_for_current_configuration,
     current_state_is_not_terminal,
+   *all_board_tests_are_passing,
     all_rules_tests_are_passing,
     all_arithmetics_tests_are_passing,
     all_lists_tests_are_passing,
