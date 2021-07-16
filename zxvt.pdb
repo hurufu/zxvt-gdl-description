@@ -819,7 +819,7 @@ max_number(A, B, A) :- A > B.
 max_number(A, B, B) :- B >= A.
 
 % Assert that current configuration is initial
-%true(X) :- init(X).
+true(X) :- init(X).
 
 log_term(Prefix, Term) :-
     write(Prefix) -> write(' : ') -> write(Term) -> nl.
@@ -967,19 +967,19 @@ main(_).
 %           distinct is a reserved Datalog keyword, and appears to be used as a constant here. Check your syntax.
 
 %true(cell(rc(1, 1),  situation(nobody, on(field, wild)))).
-true(cell(rc(1, 1),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(1, 2),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(1, 3),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(2, 1),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(2, 2),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(2, 3),  situation(nobody, on(field, owned_by(red))))).
-true(cell(rc(3, 1),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
-true(cell(rc(3, 2),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
-true(cell(rc(3, 3),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
-true(control(red)).
-true(last_cell(cell(rc(3, 2), situation(nobody, on(field, wild))))).
-true(last_move(red, move(1, from(rc(3, 3)), to(rc(3, 2))))).
-true(last_roll([4,6])).
+%true(cell(rc(1, 1),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(1, 2),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(1, 3),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 1),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 2),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 3),  situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(3, 1),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+%true(cell(rc(3, 2),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+%true(cell(rc(3, 3),  situation(army(of(red), count(1)), on(field, owned_by(red))))).
+%true(control(red)).
+%true(last_cell(cell(rc(3, 2), situation(nobody, on(field, wild))))).
+%true(last_move(red, move(1, from(rc(3, 3)), to(rc(3, 2))))).
+%true(last_roll([4,6])).
 %
 %
 % SimulationValidator
