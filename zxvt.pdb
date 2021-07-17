@@ -140,6 +140,11 @@ terminal :-
 %    player(red) &
 %    cell(rc(3,3), captured_by(red), _).
 
+% There is no hidden state
+sees(Role, did(OtherRole, Move)) :-
+    role(Role) & 
+    does(OtherRole, Move).
+
 % If a player choses to recapture the cell that he is already standing on, then just proceed by the rules
 next(cell(FromAndTo, NewSituation)) :-
     does(random, roll(D)) &
