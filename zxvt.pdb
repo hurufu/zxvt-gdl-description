@@ -97,7 +97,7 @@ init(control(red)).
 legal(random, roll(Dice)) :-
     true(control(Player)) &
     max_possible_pawn_stack(Player, Max) &
-    valid_dice(Max, Dice).
+    valid_length_dice(Max, Dice).
 % Player can move to a neighboring own or not occupied cell with all or less pawns
 legal(Player, move(MovingPawns, from(From), to(To))) :-
     true(control(Player)) &
@@ -416,7 +416,7 @@ valid_die(4).
 %valid_die(6).
 valid_dice(L) :-
     type_nl(valid_die, nl(_, L)).
-valid_dice(Number, Dice) :-
+valid_length_dice(Number, Dice) :-
     type_nl(valid_die, nl(Number, Dice)).
 
 valid_move(move(NumberOfPawns, from(From), to(To))) :-
@@ -461,6 +461,7 @@ nth_element(Tp, 1, L, H) :-
     type_list_head_tail(Tp, L, H, _).
 nth_element(Tp, N, L, E) :-
     type_list_head_tail(Tp, L, _, T) &
+    type_element(Tp, E) &
     add(1, M, N) &
     nth_element(Tp, M, T, E).
 
@@ -539,8 +540,8 @@ lt(A, B) :- ns_lt(ns(A, _), ns(B, _)).
 add(A, B, C) :- ns_add(ns(A, _), ns(B, _), ns(C, _)).
 %mul(A, B, C) :- ns_mul(ns(A, _), ns(B, _), ns(C, _)).
 %pow(A, B, C) :- ns_pow(ns(A, _), ns(B, _), ns(C, _)).
-maximum(A, B, A) :- lt(B, A).
-maximum(A, B, B) :- le(A, B).
+%maximum(A, B, A) :- lt(B, A).
+%maximum(A, B, B) :- le(A, B).
 
 %ns_pow(ns(An, succ(S)), ns(0, 0), ns(1, succ(0))) :-
 %    ns_val(ns(An, succ(S))).
