@@ -28,9 +28,9 @@ player(red).
 start_position(red, rc(1,1)).
 %Avoid exception if all UI enrichments are disabled
 rich_ui(no_rich_ui).
-rich_ui(last_roll).
-rich_ui(last_move).
-rich_ui(last_cell).
+%rich_ui(last_roll).
+%rich_ui(last_move).
+%rich_ui(last_cell).
 %rules(own,     field,    [nothing ,nothing ,nothing ,nothing ,nothing,nothing]).
 %rules(wild,    field,    [minus(1),nothing ,nothing ,capture ,capture,plus(1)]).
 %%rules(wild,    town,     [minus(1),minus(1),nothing ,capture ,plus(1),plus(1)]).
@@ -66,23 +66,23 @@ base(Cell) :-
 base(Cell) :-
     unify_cell(Cell, cell(_, situation(nobody, _))).
 base(control(R)) :- player(R).
-base(last_roll(D)) :-
-    rich_ui(last_roll) &
-    valid_dice(D).
-base(last_move(Player, Move)) :-
-    player(Player) &
-    valid_move(Move).
-base(last_cell(Cell)) :-
-    valid_cell(Cell).
-base(before_last_roll(D)) :-
-    rich_ui(last_roll) &
-    valid_dice(D).
-base(before_last_move(Player, Move)) :-
-    player(Player) &
-    valid_move(Move).
-base(before_last_cell(Cell)) :-
-    rich_ui(last_cell) &
-    valid_cell(Cell).
+%base(last_roll(D)) :-
+%    rich_ui(last_roll) &
+%    valid_dice(D).
+%base(last_move(Player, Move)) :-
+%    player(Player) &
+%    valid_move(Move).
+%base(last_cell(Cell)) :-
+%    valid_cell(Cell).
+%base(before_last_roll(D)) :-
+%    rich_ui(last_roll) &
+%    valid_dice(D).
+%base(before_last_move(Player, Move)) :-
+%    player(Player) &
+%    valid_move(Move).
+%base(before_last_cell(Cell)) :-
+%    rich_ui(last_cell) &
+%    valid_cell(Cell).
 
 init(cell(StartPosition, situation(army(of(Player), count(1)), on(field, owned_by(Player))))) :-
     start_position(Player, StartPosition).
@@ -216,33 +216,33 @@ next(cell(Spawn, situation(army(of(Player), count(1)), On))) :-
 next(control(Player)) :-
     true(control(Player)).
 
-% TODO: Add outcome to the last_roll state
-next(last_roll(Dice)) :-
-    rich_ui(last_roll) &
-    does(random, roll(Dice)).
-
-next(last_move(Player, Move)) :-
-    rich_ui(last_move) &
-    player(Player) &
-    does(Player, Move).
-
-next(last_cell(Cell)) :-
-    rich_ui(last_cell) &
-    does(_, move(_, _, to(To))) &
-    unify_cell(Cell, cell(To, _)) &
-    true(Cell).
-
-next(before_last_move(Player, Move)) :-
-    rich_ui(last_move) &
-    true(last_move(Player, Move)).
-
-next(before_last_roll(Dice)) :-
-    rich_ui(last_roll) &
-    true(last_roll(Dice)).
-
-next(before_last_cell(Cell)) :-
-    rich_ui(last_cell) &
-    true(last_cell(Cell)).
+%% TODO: Add outcome to the last_roll state
+%next(last_roll(Dice)) :-
+%    rich_ui(last_roll) &
+%    does(random, roll(Dice)).
+%
+%next(last_move(Player, Move)) :-
+%    rich_ui(last_move) &
+%    player(Player) &
+%    does(Player, Move).
+%
+%next(last_cell(Cell)) :-
+%    rich_ui(last_cell) &
+%    does(_, move(_, _, to(To))) &
+%    unify_cell(Cell, cell(To, _)) &
+%    true(Cell).
+%
+%next(before_last_move(Player, Move)) :-
+%    rich_ui(last_move) &
+%    true(last_move(Player, Move)).
+%
+%next(before_last_roll(Dice)) :-
+%    rich_ui(last_roll) &
+%    true(last_roll(Dice)).
+%
+%next(before_last_cell(Cell)) :-
+%    rich_ui(last_cell) &
+%    true(last_cell(Cell)).
 
 % Input utils
 player_score(Player, 100) :-
