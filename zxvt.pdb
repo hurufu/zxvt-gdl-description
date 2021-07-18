@@ -248,9 +248,10 @@ next(control(Player)) :-
 player_score(Player, 100) :-
     player(Player) &
     there_is_no_wild_cells_left(dupa).
-player_score(Player, 0) :-
+player_score(Player, Max) :-
     player(Player) &
-    ~there_is_no_wild_cells_left(dupa).
+    ~there_is_no_wild_cells_left(dupa) &
+    max_pawn_stack(Player, Max).
 
 there_is_no_wild_cells_left(dupa):-
     ~there_is_a_wild_cell(dupa).
@@ -264,6 +265,16 @@ there_is_a_wild_cell(dupa) :-
 %    findall(I, (I=cell(_, captured_by(Player), _), true(I)), L) &
 %    length(L, NumberOfCapturedCells).
 
+% TODO: max_pawn_stack/2 should succeed only once
+max_pawn_stack(Player, MaxPawnStack) :-
+    true(cell(_, situation(army(of(Player), count(MaxPawnStack)), _))) &
+    ~there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack).
+max_pawn_stack(Player, 0) :-
+    player(Player) &
+    ~there_is_a_cell_occupied_by_player(Player).
+there_are_stacks_larger_than_the_given_one(Player, MaxPawnStack) :-
+    lt(MaxPawnStack, N) &
+    true(cell(_, situation(army(of(Player), count(N)), _))).
 % TODO: max_possible_pawn_stack/2 should succeed only once
 max_possible_pawn_stack(Player, MaxPossiblePawnStack) :-
     possible_pawn_stack(Player, MaxPossiblePawnStack) &
@@ -768,6 +779,17 @@ there_is_a_discrepancy_for_max_possible_pawn_stack_predicate_with_a_reference_im
     reference_max_possible_pawn_stack(Player, ReferenceMaxPawnStack),
     MaxPawnStack \= ReferenceMaxPawnStack.
 
+max_pawn_stack_is_ok_for_the_current_configuration :-
+    \+there_is_a_discrepancy_for_max_pawn_stack_predicate_with_a_reference_implementation(_,_,_).
+there_is_a_discrepancy_for_max_pawn_stack_predicate_with_a_reference_implementation(Player, MaxPawnStack, ReferenceMaxPawnStack) :-
+    max_pawn_stack(Player, MaxPawnStack),
+    reference_max_pawn_stack(Player, ReferenceMaxPawnStack),
+    MaxPawnStack \= ReferenceMaxPawnStack.
+
+reference_max_pawn_stack(Player, Max) :-
+    findall(N, true(cell(_, situation(army(of(Player), count(N)), _))), L),
+    max_list_element(L, Max).
+
 reference_max_possible_pawn_stack(Player, Max) :-
     findall(N, possible_pawn_stack(Player, N), Army),
     max_list_element(Army, Max).
@@ -860,6 +882,7 @@ all_tests_are_passing :-
    ?all_configuration_tests_are_passing,
    ?all_statements_about_current_configuration_are_valid,
    ?max_possible_pawn_stack_is_ok_for_the_current_configuration,
+   ?max_pawn_stack_is_ok_for_the_current_configuration,
    ?all_legal_moves_for_current_configuration_are_valid,
    ?all_roles_have_a_score_for_current_configuration,
    ?all_scores_are_unambiguous_for_current_configuration,
