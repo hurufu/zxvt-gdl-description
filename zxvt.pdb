@@ -476,6 +476,62 @@ nth_element(Tp, N, L, E) :-
     add(1, M, N) &
     nth_element(Tp, M, T, E).
 
+type_member_list(Tp, E, L) :-
+    type_list_head_tail(Tp, L, E, _).
+type_member_list(Tp, E, L) :-
+    type_list_head_tail(Tp, L, _, T) &
+    type_member_list(Tp, E, T) &
+    type_element(Tp, E).
+
+sorted_without_repetitions(Tp, []) :- type(Tp).
+sorted_without_repetitions(Tp, [E]) :- type_element(Tp, E).
+sorted_without_repetitions(Tp, [H1,H2|T]) :-
+    type_lt(Tp, H1, H2) &
+    sorted_without_repetitions(Tp, [H2|T]).
+
+type_lt(valid_rc, E1, E2) :- rc_lt(E1, E2).
+
+rc_lt(Rc1, Rc2) :-
+    rank(Rc1, Rank1) &
+    rank(Rc2, Rank2) &
+    lt(Rank1, Rank2).
+
+% Cell ordering:
+%
+%   r\c| 1  2  3  4  5
+%    --+---------------
+%    1 | 0  1  4  9 16
+%    2 | 3  2  5 10 17
+%    3 | 8  7  6 11 18
+%    4 |15 14 13 12 19
+%    5 |24 23 22 21 20
+%
+rank(rc(1, 1),  0).
+rank(rc(1, 2),  1).
+rank(rc(1, 3),  4).
+%rank(rc(1, 4),  9).
+%rank(rc(1, 5), 16).
+rank(rc(2, 1),  3).
+rank(rc(2, 2),  2).
+rank(rc(2, 3),  5).
+%rank(rc(2, 4), 10).
+%rank(rc(2, 5), 17).
+rank(rc(3, 1),  8).
+rank(rc(3, 2),  7).
+rank(rc(3, 3),  6).
+%rank(rc(3, 4), 11).
+%rank(rc(3, 5), 18).
+%rank(rc(4, 1), 15).
+%rank(rc(4, 2), 14).
+%rank(rc(4, 3), 13).
+%rank(rc(4, 4), 12).
+%rank(rc(4, 5), 19).
+%rank(rc(5, 1), 24).
+%rank(rc(5, 2), 23).
+%rank(rc(5, 3), 22).
+%rank(rc(5, 4), 21).
+%rank(rc(5, 5), 20).
+
 type_list_length_prefix(Tp, L, 0, []) :- type_nl(Tp, nl(_, L)).
 type_list_length_prefix(Tp, L, N, S) :-
     add(1, M, N) &
