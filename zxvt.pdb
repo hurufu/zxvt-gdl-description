@@ -245,25 +245,67 @@ next(control(Player)) :-
 %    true(last_cell(Cell)).
 
 % Input utils
-player_score(Player, 100) :-
+% TODO: Properly calculate score for multiplayer games
+player_score(Player, Score) :-
+    fast_player_score(Player, Score).
+%   detailed_player_score(Player, Score).
+
+fast_player_score(Player, 100) :-
     player(Player) &
     there_is_no_wild_cells_left(dupa).
-player_score(Player, Max) :-
+fast_player_score(Player, 0) :-
     player(Player) &
-    ~there_is_no_wild_cells_left(dupa) &
-    max_pawn_stack(Player, Max).
+    there_is_a_wild_cell(dupa).
 
 there_is_no_wild_cells_left(dupa):-
     ~there_is_a_wild_cell(dupa).
 there_is_a_wild_cell(dupa) :-
-    unify_cell(Cell, cell(_, situation(_, on(_, wild)))) &
-    true(Cell).
+    true(cell(_, situation(_, on(_, wild)))).
 
-%% TODO: Implement it in GDL
-%alt_player_score(Player, NumberOfCapturedCells) :-
-%    player(Player) &
-%    findall(I, (I=cell(_, captured_by(Player), _), true(I)), L) &
-%    length(L, NumberOfCapturedCells).
+detailed_player_score(Player, 100) :-
+    player(Player) &
+    there_is_no_wild_cells_left(dupa).
+detailed_player_score(Player, Score) :-
+    player(Player) &
+    there_is_a_wild_cell(dupa) &
+    max_pawn_stack(Player, MaxPawnStack) &
+    number_of_cells_with_ownership(NumberOfCapturedCells, owned_by(Player)) &
+    saturated_add(MaxPawnStack, NumberOfCapturedCells, Score).
+
+number_of_cells_with_ownership(N, Ownership) :-
+    list_of_cells_with_particular_ownership(Ownership, RcList) &
+    valid_length_rc(N, RcList).
+
+list_of_cells_with_particular_ownership(Ownership, RcList) :-
+%   det_ownership_cell_list_acc(Ownership, RcList, []).
+   fast_ownership_cell_list_acc(Ownership, RcList, []).
+
+det_ownership_cell_list_acc(Ownership, [], Collected) :-
+   ~there_is_a_different_cell_with_ownership(Ownership, Collected) &
+    valid_ownerhip(Ownership) &
+    valid_length_rc(_, Collected).
+det_ownership_cell_list_acc(Ownership, RcList, Collected) :-
+    true(cell(H, situation(_, on(_, Ownership)))) &
+    ~type_member_list(valid_rc, H, Collected) &
+    type_list_head_tail(valid_rc, NewCollection, H, Collected) &
+    sorted_without_repetitions(valid_rc, NewCollection) &
+    det_ownership_cell_list_acc(Ownership, T, NewCollection) &
+    type_list_head_tail(valid_rc, RcList, H, T).
+there_is_a_different_cell_with_ownership(Ownership, L) :-
+    true(cell(Rc, situation(_, on(_, Ownership)))) &
+    ~type_member_list(valid_rc, Rc, L) &
+    valid_length_rc(_, L).
+
+% WARNING: Only first answer sould count
+fast_ownership_cell_list_acc(Ownership, RcList, Acc) :-
+    true(cell(H, situation(_, on(_, Ownership)))) &
+    ~type_member_list(valid_rc, H, Acc) &
+    type_list_head_tail(valid_rc, NewAcc, H, Acc) &
+    fast_ownership_cell_list_acc(Ownership, T, NewAcc) &
+    type_list_head_tail(valid_rc, RcList, H, T).
+fast_ownership_cell_list_acc(Ownership, [], Acc) :-
+    valid_ownerhip(Ownership) &
+    valid_length_rc(_, Acc).
 
 % TODO: max_pawn_stack/2 should succeed only once
 max_pawn_stack(Player, MaxPawnStack) :-
@@ -429,6 +471,8 @@ valid_dice(L) :-
     type_nl(valid_die, nl(_, L)).
 valid_length_dice(Number, Dice) :-
     type_nl(valid_die, nl(Number, Dice)).
+valid_length_rc(Number, RcList) :-
+    type_nl(valid_rc, nl(Number, RcList)).
 
 valid_move(move(NumberOfPawns, from(From), to(To))) :-
     le(1, NumberOfPawns) &
@@ -437,7 +481,9 @@ valid_move(move(NumberOfPawns, from(From), to(To))) :-
 % List utils
 type(valid_outcome).
 type(valid_die).
+type(valid_rc).
 %type(num).
+type_element(valid_rc, Element) :- valid_rc(Element).
 type_element(valid_outcome, Element) :- valid_outcome(Element).
 type_element(valid_die, Element) :- valid_die(Element).
 %type_element(num, Element) :- num(Element).
@@ -856,6 +902,27 @@ invalid_but_legal_move_for_current_configuration_exists(Role, Move) :-
     legal(Role, Move),
     \+input(Role, Move).
 
+all_player_score_tests_are_passing :-
+   ?all_roles_have_a_score_for_current_configuration,
+   ?all_scores_are_unambiguous_for_current_configuration.
+    detailed_player_score_gives_same_results_as_a_reference_implementation.
+
+detailed_player_score_gives_same_results_as_a_reference_implementation :-
+    \+t1(_,_),
+    \+t2(_,_).
+t1(Player, Score) :-
+    detailed_player_score(Player, Score),
+    \+reference_detailed_player_score(Player, Score).
+t2(Player, Score) :-
+    reference_detailed_player_score(Player, Score),
+    \+detailed_player_score(Player, Score).
+
+reference_detailed_player_score(Player, Score) :-
+    findall(Rc, (true(cell(Rc, situation(_, on(_, owned_by(Player)))))), L),
+    length(L, NumberOfCapturedCells),
+    reference_max_pawn_stack(Player, MaxPawnStack),
+    Score #= NumberOfCapturedCells + MaxPawnStack.
+
 all_roles_have_a_score_for_current_configuration :-
     \+there_is_a_role_without_a_score_for_current_configuration(_).
 there_is_a_role_without_a_score_for_current_configuration(Role) :-
@@ -879,8 +946,8 @@ all_rules_tests_are_passing :-
    ?rules_should_terminate_if_count_is_set_but_dice_list_is_not,
    ?rules_should_terminate_if_dice_list_is_set_but_count_is_not,
    ?count_zero_doesnt_leak,
-   ?all_rules([4,4,1,1], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,wild))]),
-   ?all_rules([2,1,1,3], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
+   *all_rules([4,4,1,1], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,wild))]),
+   *all_rules([2,1,1,3], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(2)), on(field,owned_by(red)))]),
    ?all_rules([1,2,3,4], situation(army(of(red), count(4)), on(field, wild)), [situation(army(of(red), count(3)), on(field,owned_by(red)))]),
    ?all_rules([1], situation(army(of(red), count(1)), on(field, owned_by(red))), [situation(army(of(red), count(1)), on(field,owned_by(red)))]),
    ?all_rules([1,1], situation(army(of(red), count(2)), on(field, wild)), [situation(nobody, on(field, wild))]),
@@ -940,8 +1007,7 @@ all_tests_are_passing :-
    ?max_possible_pawn_stack_is_ok_for_the_current_configuration,
    ?max_pawn_stack_is_ok_for_the_current_configuration,
    ?all_legal_moves_for_current_configuration_are_valid,
-   ?all_roles_have_a_score_for_current_configuration,
-   ?all_scores_are_unambiguous_for_current_configuration,
+   ?all_player_score_tests_are_passing,
    ?current_state_is_not_terminal,
    *all_board_tests_are_passing,
    ?all_rules_tests_are_passing,
