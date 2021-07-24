@@ -1123,3 +1123,10 @@ main(_).
 %       bp "consult('zxvt.pdb')"
 %   JLog:
 %      java -jar /opt/jlog/1.3.6/JLog.jar
+%
+%true(cell(rc(1, 1), situation(army(of(red), count(1)), on(field, owned_by(red))))).
+%true(cell(rc(1, 3), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(2, 3), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(3, 2), situation(nobody, on(field, owned_by(red))))).
+%true(cell(rc(3, 3), situation(nobody, on(field, wild)))).
+%true(control(red)),
