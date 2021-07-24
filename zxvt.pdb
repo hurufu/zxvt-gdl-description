@@ -281,26 +281,26 @@ list_of_cells_with_particular_ownership(Ownership, RcList) :-
    fast_ownership_cell_list_acc(Ownership, RcList, []).
 
 det_ownership_cell_list_acc(Ownership, [], Collected) :-
-   ~there_is_a_different_cell_with_ownership(Ownership, Collected) &
     valid_ownerhip(Ownership) &
-    valid_length_rc(_, Collected).
+    valid_length_rc(_, Collected) &
+   ~there_is_a_different_cell_with_ownership(Ownership, Collected).
 det_ownership_cell_list_acc(Ownership, RcList, Collected) :-
     true(cell(H, situation(_, on(_, Ownership)))) &
-    ~type_member_list(valid_rc, H, Collected) &
     type_list_head_tail(valid_rc, NewCollection, H, Collected) &
+    ~type_member_list(valid_rc, H, Collected) &
     sorted_without_repetitions(valid_rc, NewCollection) &
     det_ownership_cell_list_acc(Ownership, T, NewCollection) &
     type_list_head_tail(valid_rc, RcList, H, T).
 there_is_a_different_cell_with_ownership(Ownership, L) :-
     true(cell(Rc, situation(_, on(_, Ownership)))) &
-    ~type_member_list(valid_rc, Rc, L) &
-    valid_length_rc(_, L).
+    valid_length_rc(_, L) &
+    ~type_member_list(valid_rc, Rc, L).
 
 % WARNING: Only first answer sould count
 fast_ownership_cell_list_acc(Ownership, RcList, Acc) :-
     true(cell(H, situation(_, on(_, Ownership)))) &
-    ~type_member_list(valid_rc, H, Acc) &
     type_list_head_tail(valid_rc, NewAcc, H, Acc) &
+    ~type_member_list(valid_rc, H, Acc) &
     fast_ownership_cell_list_acc(Ownership, T, NewAcc) &
     type_list_head_tail(valid_rc, RcList, H, T).
 fast_ownership_cell_list_acc(Ownership, [], Acc) :-
