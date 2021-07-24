@@ -585,8 +585,8 @@ ns_le(A, B) :-
 ns_eq(A, A) :-
     ns_val(A).
 ns_lt(A, B) :-
-    ns_le(A, B) &
-    distinct(A, B).
+    ns_suc(X, B) &
+    ns_le(A, X).
 
 % TODO: Is it possible to define somethin similar in GDL?
 %eval(A + B = C) :-
