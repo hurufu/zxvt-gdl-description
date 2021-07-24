@@ -531,9 +531,10 @@ type_member_list(Tp, E, L) :-
 
 sorted_without_repetitions(Tp, []) :- type(Tp).
 sorted_without_repetitions(Tp, [E]) :- type_element(Tp, E).
-sorted_without_repetitions(Tp, [H1,H2|T]) :-
+sorted_without_repetitions(Tp, H1!(H2!T)) :-
     type_lt(Tp, H1, H2) &
-    sorted_without_repetitions(Tp, [H2|T]).
+    sorted_without_repetitions(Tp, L) &
+    type_list_head_tail(Tp, L, H2, T).
 
 type_lt(valid_rc, E1, E2) :- rc_lt(E1, E2).
 
