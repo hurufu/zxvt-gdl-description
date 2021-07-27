@@ -26,11 +26,8 @@
 max_row(3).
 max_col(3).
 player(red).
-player(blue).
 start_position(red, rc(1,1)).
-start_position(blue, rc(3,3)).
-player_next(red, blue).
-player_next(blue, red).
+player_next(red, red).
 %Avoid exception if all UI enrichments are disabled
 rich_ui(no_rich_ui).
 %rich_ui(last_roll).
@@ -52,7 +49,6 @@ rules(wild,    field,    [minus(1),nothing,capture,plus(1)]).
 
 role(random).
 role(red).
-role(blue).
 
 % Random player can only roll a list of dice (D6)
 % TODO: Consider making number of die sides configurable
