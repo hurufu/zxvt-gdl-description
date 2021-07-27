@@ -17,6 +17,7 @@
 :- op(900, fy, '$').
 :- op(900, fy, '$-').
 :- op(900, fy, '?').
+:- op(900, fy, '-?').
 :- op(1050, xfy, '~>').
 :- initialization(all_tests_are_passing).
 
@@ -1086,6 +1087,10 @@ log_term_excpt(Goal, Exception) :-
     call(Goal) ~>
         log_term(fail, Goal) ->
             false.
+
+'-?'(Goal) :-
+    call(Goal) ~>
+        throw(must_succeed_by_failed(Goal)).
 
 % Operator 'unless'
 % FIXME: Don't call Cond twice
