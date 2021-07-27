@@ -26,7 +26,11 @@
 max_row(3).
 max_col(3).
 player(red).
+player(blue).
 start_position(red, rc(1,1)).
+start_position(blue, rc(3,3)).
+player_next(red, blue).
+player_next(blue, red).
 %Avoid exception if all UI enrichments are disabled
 rich_ui(no_rich_ui).
 %rich_ui(last_roll).
@@ -48,6 +52,7 @@ rules(wild,    field,    [minus(1),nothing,capture,plus(1)]).
 
 role(random).
 role(red).
+role(blue).
 
 % Random player can only roll a list of dice (D6)
 % TODO: Consider making number of die sides configurable
@@ -60,6 +65,9 @@ input(Player, Move) :-
 % Any player can spawn pawns only at a starting position
 input(Player, spawn(at(StartPosition))) :-
     start_position(Player, StartPosition).
+% Any player should wait when it's not his move
+input(Player, noop) :-
+    player(Player).
 
 base(Cell) :-
     unify_cell(Cell, cell(_, situation(army(of(_), count(X)), _))) &
@@ -110,6 +118,15 @@ legal(Player, move(MovingPawns, from(From), to(To))) :-
         true(cell(To, situation(nobody, _)))
     ) &
     distinct(From, To).
+% A Player can attack a neighboring occupied cell
+legal(Player, attack(MovingPawns, from(From), to(To))) :-
+    true(control(Player)) &
+    true(cell(From, situation(army(of(Player), count(StationaryPawns)), _))) &
+    le(MovingPawns, StationaryPawns) &
+    valid_move(move(MovingPawns, from(From), to(To))) &
+    true(cell(To, situation(army(of(Opponent), _), _))) &
+    distinct(From, To) &
+    distinct(Player, Opponent).
 % It's not legal to move only part of a stack to the same cell as currently standing on
 legal(Player, move(MovingPawns, from(FromAndTo), to(FromAndTo))) :-
     true(control(Player)) &
@@ -122,6 +139,11 @@ legal(Player, spawn(at(StartPosition))) :-
     true(control(Player)) &
     start_position(Player, StartPosition) &
     ~player_has_an_army(Player).
+% It's legal for a player to do nothing only if it's not his move
+legal(Player, noop) :-
+    player(Player) &
+    true(control(Q)) &
+    distinct(Player, Q).
 
 player_has_an_army(Player) :-
     true(cell(_, situation(army(of(Player), _), _))).
@@ -197,6 +219,10 @@ next(cell(Rc, Situation)) :-
     distinct(Rc, To) &
     valid_situation(Situation).
 
+%next(cell(To, NewSituation)) :-
+%    does(Player, attack(MovingPawns, from(From), to(To))) &
+%    does(random, dice(attacker(AttackerDice), defender(DefenderDice))).
+
 % All other cells should retains their respective state
 next(cell(Rc, Situation)) :-
     does(_, spawn(at(Spawn))) &
@@ -213,9 +239,9 @@ next(cell(Spawn, situation(army(of(Player), count(1)), On))) :-
     does(Player, spawn(at(Spawn))) &
     true(cell(Spawn, situation(nobody, On))).
 
-% TODO: Implement transfer of control
-next(control(Player)) :-
-    true(control(Player)).
+next(control(P)) :-
+    true(control(Q)) &
+    player_next(Q, P).
 
 %% TODO: Add outcome to the last_roll state
 %next(last_roll(Dice)) :-
@@ -248,8 +274,8 @@ next(control(Player)) :-
 % Input utils
 % TODO: Properly calculate score for multiplayer games
 player_score(Player, Score) :-
-    fast_player_score(Player, Score).
-%   detailed_player_score(Player, Score).
+%   fast_player_score(Player, Score).
+    detailed_player_score(Player, Score).
 
 fast_player_score(Player, 100) :-
     player(Player) &
@@ -278,8 +304,8 @@ number_of_cells_with_ownership(N, Ownership) :-
     valid_length_rc(N, RcList).
 
 list_of_cells_with_particular_ownership(Ownership, RcList) :-
-%   det_ownership_cell_list_acc(Ownership, RcList, []).
-   fast_ownership_cell_list_acc(Ownership, RcList, []).
+   det_ownership_cell_list_acc(Ownership, RcList, []).
+%   fast_ownership_cell_list_acc(Ownership, RcList, []).
 
 det_ownership_cell_list_acc(Ownership, [], Collected) :-
     valid_ownerhip(Ownership) &
@@ -441,10 +467,11 @@ valid_occupation(army(of(Player), count(X))) :-
     player(Player) &
     num(X).
 
-valid_occupation_non_0(nobody).
-valid_occupation_non_0(army(of(Player), count(succ(X)))) :-
-    player(Player) &
-    num(X).
+%valid_situation_non_0(Situation) :-
+%    unify_situation(Situation, situation(nobody, _)).
+%valid_situation_non_0(Situation) :-
+%    unify_situation(Situation, situation(army(_, count(X)), _)) &
+%    le(1, X).
 
 valid_cell(cell(Coordinates, Situation)) :-
     valid_rc(Coordinates) &
@@ -806,10 +833,21 @@ reference_type_list_length_prefix(_, L, N, S) :-
 
 % Configuration tests
 all_configuration_tests_are_passing :-
-    there_is_a_strong_correspondence_between_players_and_spawns,
-    there_is_a_rule_for_each_die,
-    there_is_a_die_for_each_rule,
-    all_rules_are_representable_using_valid_list.
+   ?there_is_a_strong_correspondence_between_players_and_spawns,
+   ?there_is_a_rule_for_each_die,
+   ?there_is_a_die_for_each_rule,
+   ?all_rules_are_representable_using_valid_list,
+  -?all_players_are_ordered.
+
+% TODO: All players form a cycle
+all_players_are_ordered :-
+    \+tx(_).
+tx(P) :-
+    player(P),
+    (
+        \+player_next(_, P);
+        \+player_next(P, _)
+    ).
 
 there_is_a_strong_correspondence_between_players_and_spawns :-
     \+there_is_a_starting_position_without_a_player(_),
@@ -906,16 +944,18 @@ invalid_but_legal_move_for_current_configuration_exists(Role, Move) :-
 
 all_player_score_tests_are_passing :-
    ?all_roles_have_a_score_for_current_configuration,
-   ?all_scores_are_unambiguous_for_current_configuration.
-    detailed_player_score_gives_same_results_as_a_reference_implementation.
+   ?all_scores_are_unambiguous_for_current_configuration,
+   ?detailed_player_score_gives_same_results_as_a_reference_implementation.
 
 detailed_player_score_gives_same_results_as_a_reference_implementation :-
     \+t1(_,_),
     \+t2(_,_).
 t1(Player, Score) :-
+    player(Player),
     detailed_player_score(Player, Score),
     \+reference_detailed_player_score(Player, Score).
 t2(Player, Score) :-
+    player(Player),
     reference_detailed_player_score(Player, Score),
     \+detailed_player_score(Player, Score).
 
@@ -1135,3 +1175,26 @@ main(_).
 %true(cell(rc(3, 2), situation(nobody, on(field, owned_by(red))))).
 %true(cell(rc(3, 3), situation(nobody, on(field, wild)))).
 %true(control(red)),
+%
+% BasesInputsValidator
+%     org.ggp.base.validator.ValidatorException:
+%         Validator:
+%             Could not find legal moves while simulating:
+%                 There are no legal moves defined for blue in [
+%                     ( true ( control blue ) ),
+%                     ( true ( cell ( rc 1 1 ) ( situation nobody ( on field ( owned_by red ) ) ) ) ),
+%                     ( true ( cell ( rc 2 1 ) ( situation ( army ( of red ) ( count 2 ) ) ( on field wild ) ) ) ),
+%                     ( true ( cell ( rc 2 2 ) ( situation ( army ( of blue ) ( count 1 ) ) ( on field ( owned_by blue ) ) ) ) )
+%                 ]
+% SimulationValidator
+%   org.ggp.base.validator.ValidatorException:
+%       Validator:
+%           Could not find legal moves while simulating:
+%               There are no legal moves defined for blue in [
+%                   ( true ( control blue ) ),
+%                   ( true ( cell ( rc 1 1 ) ( situation nobody ( on field ( owned_by red ) ) ) ) ),
+%                   ( true ( cell ( rc 1 2 ) ( situation ( army ( of red ) ( count 1 ) ) ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 1 ) ( situation ( army ( of red ) ( count 1 ) ) ( on field wild ) ) ) ),
+%                   ( true ( cell ( rc 2 2 ) ( situation ( army ( of blue ) ( count 1 ) ) ( on field ( owned_by blue ) ) ) ) )
+%                   ]
+% 

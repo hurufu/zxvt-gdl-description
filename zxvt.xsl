@@ -19,14 +19,23 @@
           td[ownership="red"] {
             background-color: #990000;
           }
+          td[ownership="blue"] {
+            background-color: #000099;
+          }
           td[ownership="wild"] {
             background-color: #CCCCCC;
           }
           td[occupation="red"] {
             color: #CC0000;
           }
+          td[occupation="blue"] {
+            color: #0000CC;
+          }
           samp.red {
             color: #CC0000;
+          }
+          samp.blue {
+            color: #0000CC;
           }
           table.board {
             background-color: #000000;
