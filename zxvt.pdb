@@ -669,7 +669,7 @@ saturated_sub_ns(A, B, ns(0, 0)) :-
     ~saturated_sub_ns_aux(A).
 saturated_sub_ns_aux(A) :-
     ns_val(Tmp) &
-     ns_suc(Tmp, A).
+    ns_suc(Tmp, A).
 
 % Arithmetic utils
 num(A) :- ns_val(ns(A, _)).
