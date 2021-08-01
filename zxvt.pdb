@@ -463,11 +463,11 @@ valid_occupation(army(of(Player), count(X))) :-
     player(Player) &
     num(X).
 
-%valid_situation_non_0(Situation) :-
-%    unify_situation(Situation, situation(nobody, _)).
-%valid_situation_non_0(Situation) :-
-%    unify_situation(Situation, situation(army(_, count(X)), _)) &
-%    le(1, X).
+valid_situation_non_0(Situation) :-
+    unify_situation(Situation, situation(nobody, _)).
+valid_situation_non_0(Situation) :-
+    unify_situation(Situation, situation(army(_, count(X)), _)) &
+    le(1, X).
 
 valid_cell(cell(Coordinates, Situation)) :-
     valid_rc(Coordinates) &
@@ -535,8 +535,8 @@ type_nl(Tp, nl( 4, [H,T1,T2,T3])) :- type_nl_04(Tp, [H,T1,T2,T3]).
 %type_nl(Tp, nl( 8, [H,T1,T2,T3,T4,T5,T6,T7])) :- type_nl_08(Tp, [H,T1,T2,T3,T4,T5,T6,T7]).
 %type_nl(Tp, nl( 9, [H,T1,T2,T3,T4,T5,T6,T7,T8])) :- type_nl_09(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8]).
 %type_nl(Tp, nl(10, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9])) :- type_nl_10(Tp, [H,T1,T2,T3,T4,T5,T6,T7,T8,T9]).
-type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
-%type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
+%type_list_head_tail(Tp, H!T,  H, T) :- type_nl(Tp, nl(_,  H!T )).
+type_list_head_tail(Tp, [H|T], H, T) :- type_nl(Tp, nl(_, [H|T])).
 
 nth_element(Tp, 1, L, H) :-
     type_list_head_tail(Tp, L, H, _).
@@ -555,8 +555,8 @@ type_member_list(Tp, E, L) :-
 
 sorted_without_repetitions(Tp, []) :- type(Tp).
 sorted_without_repetitions(Tp, [E]) :- type_element(Tp, E).
-%sorted_without_repetitions(Tp, [H1,H2|T]) :-
-sorted_without_repetitions(Tp, H1!(H2!T)) :-
+sorted_without_repetitions(Tp, [H1,H2|T]) :-
+%sorted_without_repetitions(Tp, H1!(H2!T)) :-
     type_lt(Tp, H1, H2) &
     sorted_without_repetitions(Tp, L) &
     type_list_head_tail(Tp, L, H2, T).
@@ -1090,6 +1090,78 @@ max_number(A, B, B) :- B >= A.
 
 % Assert that current configuration is initial
 true(X) :- init(X).
+
+dinit(game(
+    phase(moves(red)),
+    board(
+        graph([
+            [o,x,o,x,o,o,o,o,o],
+            [x,x,o,o,x,o,o,o,o],
+            [o,x,x,x,o,x,o,x,o],
+            [x,o,x,x,o,o,o,o,x],
+            [o,x,o,o,x,x,o,o,o],
+            [o,o,x,o,x,x,x,o,o],
+            [o,o,o,o,o,x,x,x,o],
+            [o,o,x,o,o,o,x,x,x],
+            [o,o,o,x,o,o,o,x,x]
+        ]),
+        cells([
+            situation(army(of(red), count(1)), on(town, owned_by(red))),
+            situation(nobody, on(field, wild)),
+            situation(nobody, on(field, wild)),
+            situation(nobody, on(field, wild)),
+            situation(nobody, on(field, wild)),
+            situation(nobody, on(field, wild)),
+            situation(army(of(blue), count(1)), on(town, owned_by(blue))),
+            situation(nobody, on(field, wild)),
+            situation(nobody, on(field, wild))
+        ])
+    )
+)).
+
+% Cell ordering:
+%
+%   r\c| 1  2  3  4  5
+%    --+---------------
+%    1 | 0  1  4  9 16
+%    2 | 3  2  5 10 17
+%    3 | 8  7  6 11 18
+%    4 |15 14 13 12 19
+%    5 |24 23 22 21 20
+%
+dbase(board(graph([]), cells([]))).
+dbase(phase(moves(P))) :- player(P).
+dbase(phase(throws(P))) :- player(P).
+
+dnext(control(dice_of(P))) :-
+    dtrue(control(player(P))).
+dnext(control(player(P))) :-
+    dtrue(control(dice_of(Q))) &
+    player_next(P).
+
+dlegal(Player, move(MovingPawns, from(From), to(To))) :-
+    path(From, To) &
+    (
+        cell_at(To, situation(army(of(Player), _), _)) |
+        cell_at(To, situation(nobody, _))
+    ).
+dlegal(Player, attack(MovingPawns, from(From, to(To)))) :-
+    path(From, To) &
+    cell_at(To, situation(army(of(Opponent), _), _)) &
+    distinct(Player, Opponent).
+dlegal(random ,roll(Dice)) :-
+    dtrue(game(phase(throws(Player)))) &
+    does(Player, move(MovingPawns, _, _)) &
+    length(MovingPawns, Dice).
+
+path(A, A).
+path(A, B) :-
+    dtrue(game(_, board(graph(G), _)) &
+    false.
+
+cell_at(N, C) :-
+    dtrue(game(_, board(_, cells(L)))) &
+    nth(N, L, C).
 
 log_term(Prefix, Term) :-
     write(Prefix) -> write(' : ') -> write(Term) -> nl.
