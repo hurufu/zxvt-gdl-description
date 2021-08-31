@@ -1075,6 +1075,7 @@ value_of_all_elements_of_a_list(_, []).
 value_of_all_elements_of_a_list(H, [H|T]) :-
     value_of_all_elements_of_a_list(H, T).
 
+% Halting problem sovled 😃
 always_halts(Goal) :-
     \+doesnt_halt(Goal).
 doesnt_halt(Goal) :-
@@ -1127,7 +1128,7 @@ log_term_excpt(Goal, Exception) :-
 
 '-?'(Goal) :-
     call(Goal) ~>
-        throw(must_succeed_by_failed(Goal)).
+        throw(must_succeed_but_failed(Goal)).
 
 % Operator 'unless'
 % FIXME: Don't call Cond twice
