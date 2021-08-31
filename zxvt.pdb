@@ -960,7 +960,7 @@ reference_detailed_player_score(Player, Score) :-
     findall(Rc, (true(cell(Rc, situation(_, on(_, owned_by(Player)))))), L),
     length(L, NumberOfCapturedCells),
     reference_max_pawn_stack(Player, MaxPawnStack),
-    Score #= NumberOfCapturedCells + MaxPawnStack.
+    Score is NumberOfCapturedCells + MaxPawnStack.
 
 all_roles_have_a_score_for_current_configuration :-
     \+there_is_a_role_without_a_score_for_current_configuration(_).
@@ -1158,8 +1158,8 @@ main(_).
 %   Trealla Prolog:
 %       tpl zxvt.pdb
 %   tuProlog:
-%       TODO: Not working yet: https://github.com/tuProlog/2p-kt/issues/5
-%       java -jar /opt/tuprolog/2p-repl-0.18.1-redist.jar -T zxvt.pdb
+%       TODO: tuProlog doesn't have length/2 as a builting predicate, need to find a way to enable it
+%       java -jar /opt/tuprolog/2p-repl-0.20.0-redist.jar -T zxvt.pdb
 %   B-Prolog:
 %       WARNING: Doesn't really work without removing '|'/2 and '$'/2 operators
 %       bp "consult('zxvt.pdb')"
